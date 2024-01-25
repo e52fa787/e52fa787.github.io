@@ -1,29 +1,137 @@
+*{
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
 html, body, #canvas{
     width: 100%;
     margin: 0;
     padding: 0;
+    border: solid 0px;
 }
 html, #canvas{
     height: 100%;
 }
 html{
-    background: black;
+    background: darkblue;
     overflow: hidden;
 }
 body{
     height: 100%;
 }
-#control-panel{
+
+/* Control Panel Styles */
+
+#controls{
     position: absolute;
     min-width: 150px;
-    left: 15px;
-    top: 15px;
-    background: rgba(255,255,255,0.5)
+    transform: translate(15px, 15px);
+    background: rgba(0,0,0,0.5);
+    color: white;
+    font-family:'Courier New', Courier, monospace;
+    font-size: 1em;
+    transition: background-color .5s;
 }
-#control-panel>header{
-    /*cursor: grab;*/
-    padding: 10px;
+#controls .toggle-dropdown{
+    position: absolute;
+    padding: 0.5em 0.8em;
+    border: solid 0px;
+    margin: 0;
+    right: 0;
+    top: 0;
+    background: transparent;
+    cursor: pointer;
 }
-#control-panel.currentlyDragging>header{
+#controls .toggle-dropdown:before{
+    border-color: gray;
+    border-style: solid;
+    border-width: 0.15em 0 0 0.15em;
+    content: '';
+    display: inline-block;
+    position: relative;
+    height: 0.4em;
+    width: 0.4em;
+    left: 0.1em;
+    top: 0.1em;
+    transform: rotate(45deg);
+    vertical-align: middle;
+    transition: transform .5s;
+}
+#controls>header{
+    cursor: grab;
+    font-size: 1em;
+    color: gray;
+    background: rgba(0,0,0,0.2);
+    padding: 0.5em;
+    transition: background-color 0.5s;
+}
+#controls>ul{
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: solid 0px;
+    overflow: hidden;
+    max-height: 100px; /* UPDATE THIS IF LIST SIZE CHANGES */
+    transition: max-height .5s;
+}
+#controls>ul>li{
+    padding: 0.5em;
+}
+
+/* Control Panel Dragged and Closed styles */
+
+#controls.closed{
+    background: rgba(0,0,0,0.25)
+}
+
+#controls.closed .toggle-dropdown:before{
+    transform: translateY(-0.2em) rotate(-135deg);
+}
+
+#controls.currentlyDragging>header{
+    background: rgba(0,0,0,0.75);
     /*cursor: grabbing;*/
+}
+#controls.closed>ul{
+    max-height: 0;
+}
+
+#controls input[type=checkbox]{
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    box-sizing: content-box;
+    position: relative;
+    font-size: inherit;
+    width: 2em;
+    height: 1em;
+    border: 1px solid;
+    border-radius: 1em;
+    vertical-align: text-bottom;
+    margin: auto;
+    color: inherit;
+    transition: color .5s;
+}
+
+#controls input[type=checkbox]:before{
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translate(0, -50%);
+    box-sizing: border-box;
+    width: 0.7em;
+    height: 0.7em;
+    margin: 0 0.15em;
+    border: 1px solid;
+    border-radius: 50%;
+    background: currentColor;
+    transition: transform .5s;
+}
+#controls input[type=checkbox]:checked{
+    color: dodgerblue;
+}
+#controls input[type=checkbox]:checked:before{
+    transform: translate(1em, -50%);
 }

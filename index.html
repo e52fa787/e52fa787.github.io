@@ -2,11 +2,15 @@
 <html lang="en">
     <head>
         <title>Canvas demo</title>
-        <link href="style.css" rel="stylesheet">
+        <link href="style.css" rel="stylesheet" />
     </head>
     <body>
-        <div id="control-panel">
-            <header>controls</header>
+        <div id="controls">
+            <button class="toggle-dropdown"></button>
+            <header>options</header>
+            <ul>
+                <li>animation: <input type="checkbox" class="toggle-animation" checked="true" /></li>
+            </ul>
         </div>
         <canvas id="canvas">Your browser doesn't support HTML5 Canvas :(</canvas>
         <script src="script.js"></script>
