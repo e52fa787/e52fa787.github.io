@@ -14,7 +14,7 @@ html, #canvas{
     height: 100%;
 }
 html{
-    background: darkblue;
+    background: black;
     overflow: hidden;
 }
 body{
@@ -31,7 +31,7 @@ body{
     color: white;
     font-family:'Courier New', Courier, monospace;
     font-size: 1em;
-    transition: background-color .5s;
+    transition: background-color .3s;
 }
 #controls .toggle-dropdown{
     position: absolute;
@@ -56,7 +56,7 @@ body{
     top: 0.1em;
     transform: rotate(45deg);
     vertical-align: middle;
-    transition: transform .5s;
+    transition: transform .3s;
 }
 #controls>header{
     cursor: grab;
@@ -64,7 +64,7 @@ body{
     color: gray;
     background: rgba(0,0,0,0.2);
     padding: 0.5em;
-    transition: background-color 0.5s;
+    transition: background-color .3s;
 }
 #controls>ul{
     list-style: none;
@@ -72,8 +72,8 @@ body{
     padding: 0;
     border: solid 0px;
     overflow: hidden;
-    max-height: 100px; /* UPDATE THIS IF LIST SIZE CHANGES */
-    transition: max-height .5s;
+    max-height: 6em; /* UPDATE THIS IF LIST SIZE CHANGES, AS OF NOW EACH LI IS 2EM */
+    transition: max-height .3s;
 }
 #controls>ul>li{
     padding: 0.5em;
@@ -98,8 +98,6 @@ body{
 }
 
 #controls input[type=checkbox]{
-    -webkit-appearance: none;
-    -moz-appearance: none;
     appearance: none;
     box-sizing: content-box;
     position: relative;
@@ -111,7 +109,7 @@ body{
     vertical-align: text-bottom;
     margin: auto;
     color: inherit;
-    transition: color .5s;
+    transition: color .3s;
 }
 
 #controls input[type=checkbox]:before{
@@ -127,11 +125,28 @@ body{
     border: 1px solid;
     border-radius: 50%;
     background: currentColor;
-    transition: transform .5s;
+    transition: transform .3s;
 }
 #controls input[type=checkbox]:checked{
     color: dodgerblue;
 }
 #controls input[type=checkbox]:checked:before{
     transform: translate(1em, -50%);
+}
+#controls button{
+    appearance: none;
+    background: none;
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    border: none;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+#controls button:hover{
+    color: aqua;
+}
+#controls button:active{
+    color: red;
 }

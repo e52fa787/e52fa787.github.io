@@ -5,11 +5,13 @@
         <link href="style.css" rel="stylesheet" />
     </head>
     <body>
-        <div id="controls">
+        <div id="controls" draggable="true">
             <button class="toggle-dropdown"></button>
             <header>options</header>
             <ul>
-                <li>animation: <input type="checkbox" class="toggle-animation" checked="true" /></li>
+                <li>animation: <input type="checkbox" class="toggle-animation" /></li>
+                <li><button class="clear-canvas">clear</button></li>
+                <li id="output-coords">no drawing</li>
             </ul>
         </div>
         <canvas id="canvas">Your browser doesn't support HTML5 Canvas :(</canvas>
