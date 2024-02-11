@@ -72,7 +72,7 @@ body{
     padding: 0;
     border: solid 0px;
     overflow: hidden;
-    max-height: 6em; /* UPDATE THIS IF LIST SIZE CHANGES, AS OF NOW EACH LI IS 2EM */
+    max-height: 10em; /* UPDATED BY JAVASCRIPT VIA STYLE ELEMENT IN HTML */
     transition: max-height .3s;
 }
 #controls>ul>li{
@@ -138,9 +138,10 @@ body{
     background: none;
     display: inline-block;
     margin: 0;
-    padding: 0;
+    padding: 0 0.5em 0 0;
     border: none;
     font: inherit;
+    text-decoration: underline;
     color: inherit;
     cursor: pointer;
 }

@@ -10,13 +10,16 @@ const EVENTDRAGMOVE = HASTOUCHEVENTS ? 'touchend' : 'mousemove',
     EVENTDRAGEND = HASTOUCHEVENTS ? 'touchmove' : 'mouseup',
     EVENTDRAGSTART = HASTOUCHEVENTS ? 'touchstart' : 'mousedown'
 
-let $controls=$doc.getElementById('controls')
+let $controls=$doc.getElementById('controls'),
+    $cssOutput=$doc.getElementById('css-output')
 
 let $controlsDragTrigger=$controls.getElementsByTagName('header')[0]
+let $controlsList=$controls.getElementsByTagName('ul')[0]
 let $controlTogglePanel=$controls.getElementsByClassName('toggle-dropdown')[0]
 let $controlToggleAnimation=$controls.getElementsByClassName('toggle-animation')[0]
 
 let $controlsClearCanvas=$controls.getElementsByClassName('clear-canvas')[0]
+let $controlsResetCanvas=$controls.getElementsByClassName('reset-canvas')[0]
 
 let $coordOutput=$doc.getElementById('output-coords')
 
@@ -156,6 +159,16 @@ let handleControlPanelToggle=function(){
 $controlTogglePanel.addEventListener('click', handleControlPanelToggle)
 
 /**
+ * Updates the control panel's CSS height
+ * Currently, each child of $controlList contributes 2em to its opened height
+ */
+let updateControlsHeightCSS=function(){
+    $cssOutput.innerHTML="#controls>ul{max-height:"+($controlsList.childElementCount*2)+"em;}"
+}
+updateControlsHeightCSS()
+
+
+/**
  * Pauses or unpauses animation
  */
 let handleAnimationToggle=function(){
@@ -175,7 +188,15 @@ let handleClearCanvas=function(){
     ctx.clearRect(0,0,canvasWidth,canvasHeight)
 }
 $controlsClearCanvas.addEventListener('click', handleClearCanvas)
-
+/**
+ * Resets canvas
+ */
+let handleResetCanvas=function(){
+    randomSeed1=Math.random()
+    randomSeed2=Math.random()
+    handleClearCanvas()
+}
+$controlsResetCanvas.addEventListener('click', handleResetCanvas)
 
 /**
  * Syncs canvasDragPos with current cursor position when dragging
@@ -185,16 +206,16 @@ setUpDragListeners($canvas, function(coords){
     currentlyDraggingCanvas=true
     canvasDragPos[0]=coords[0]
     canvasDragPos[1]=coords[1]
+
+    $coordOutput.innerHTML=Math.floor(canvasDragPos[0])+', '+Math.floor(canvasDragPos[1])
 },function(coords){
     canvasDragPos[0]=coords[0]
     canvasDragPos[1]=coords[1]
-    
-    
 
     $coordOutput.innerHTML=Math.floor(canvasDragPos[0])+', '+Math.floor(canvasDragPos[1])
 },function(){
     currentlyDraggingCanvas=false
-    $coordOutput.innerHTML='not drawing rn'
+    $coordOutput.innerHTML='no dragging rn'
 })
 
 
@@ -217,17 +238,17 @@ let handleResize=function(){
 handleResize()
 $w.addEventListener('resize', handleResize)
 
-let circleRadius=100,circleX=canvasWidth/2,circleY=canvasHeight/2,colorSeed=Math.random()*360
+let circleRadius,circleX,circleY,randomSeed1=Math.random(),randomSeed2=Math.random()
 
 let animate=function(){
     circleRadius = 3 //100+10*Math.sin(animTick*0.1)
-    circleX = canvasWidth/2 + 200 * Math.sin(colorSeed + 0.01 * animTick)
-    circleY = canvasHeight/2 + 200 * Math.sin(colorSeed + 0.01 * animTick * Math.sqrt(3))
+    circleX = canvasWidth/2 + 200 * Math.sin(randomSeed1 + 0.01 * animTick)
+    circleY = canvasHeight/2 + 200 * Math.sin(randomSeed2 + 0.01 * animTick * randomSeed1 * 2)
 
     //ctx.clearRect(0,0,canvasWidth,canvasHeight)
     ctx.beginPath()
     ctx.arc(circleX,circleY,circleRadius,0,2*Math.PI)
-    ctx.fillStyle='hsl('+ Math.floor(animTick/10+colorSeed)%360 + ',70%,50%)'
+    ctx.fillStyle='hsl('+ Math.floor(animTick*0.2*randomSeed2+ randomSeed1 *360)%360 + ',70%,50%)'
     ctx.fill();ctx.closePath()
 
     animTick++
