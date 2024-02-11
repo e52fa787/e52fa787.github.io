@@ -68,16 +68,11 @@ let extractCoordsFromEvent=function(e){
     return pos
 }
 /**
- * @callback handleDrag
- * @param {Array} coords Coordinates of the drag event as an array of integers
- * @param {Event} [e] The underlying Event (optional)
- */
-/**
  * Attaches and removes event listeners for draggable objects and calculates mouse coordinates
  * @param {Element} $elem Element to attach the drag start listener to
- * @param {handleDrag} dragStart Function that runs on drag start
- * @param {handleDrag} dragMove Function that runs on drag move
- * @param {handleDrag} dragEnd Function that runs on drag end
+ * @param {Function} dragStart Function that runs on drag start
+ * @param {Function} dragMove Function that runs on drag move
+ * @param {Function} dragEnd Function that runs on drag end
  */
 let setUpDragListeners=function($elem, dragStart, dragMove, dragEnd){
     let dragStartListener=function(e){
