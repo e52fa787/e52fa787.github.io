@@ -1,10 +1,8 @@
 (function(global, factory){global.addEventListener('load', factory)})(typeof window!=='undefined'?window:this, function(globalLoadEvent){'use strict';
 
-const $w=globalLoadEvent.currentTarget,
-    $doc=window.document,
+const $w=globalLoadEvent ? globalLoadEvent.currentTarget : this,
+    $doc=$w.document,
     $body=$doc.body
-
-
 
 const HASTOUCHEVENTS = typeof $w.ontouchstart!=='undefined'
 
@@ -19,7 +17,8 @@ let $controlsClearCanvas=$controls.getElementsByClassName('clear-canvas')[0]
 let $coordOutput=$doc.getElementById('output-coords')
 
 let controlsDragPos=[0,0]
-let controlPos=[$controls.offsetLeft,$controls.offsetTop]
+//
+let controlPos=(function(o){return [o.left,o.top]})($controls.getBoundingClientRect())
 
 let EVENTDRAGMOVE='mousemove',
     EVENTDRAGEND='mouseup',
@@ -105,19 +104,18 @@ setUpDragListeners($controlsDragTrigger, function(coords){
     controlsDragPos[1] = coords[1]
     $controls.classList.add('currentlyDragging')
 }, function(coords){
-    let [x,y]=coords,
-        computedLeft,
+    let computedLeft,
         computedTop
 
     // compute new positions based on mouse movement
 
-    controlPos[0]=controlPos[0] + x - controlsDragPos[0]
-    controlPos[1]=controlPos[1] + y - controlsDragPos[1]
+    controlPos[0] += coords[0] - controlsDragPos[0]
+    controlPos[1] += coords[1] - controlsDragPos[1]
 
     //store old positions
 
-    controlsDragPos[0]=x
-    controlsDragPos[1]=y
+    controlsDragPos[0]=coords[0]
+    controlsDragPos[1]=coords[1]
 
     //$controlsDragTrigger.innerHTML=controlsDragPos[0]+', '+controlsDragPos[1]
 
@@ -178,7 +176,7 @@ $controlsClearCanvas.addEventListener('click', handleClearCanvas)
 
 
 setUpDragListeners($canvas, function(coords){
-    currentlyDraggingCanvas=TextTrackCueList
+    currentlyDraggingCanvas=true
     canvasDragPos[0]=coords[0]
     canvasDragPos[1]=coords[1]
 },function(coords){
