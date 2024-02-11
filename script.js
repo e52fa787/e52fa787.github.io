@@ -6,6 +6,10 @@ const $w=globalLoadEvent ? globalLoadEvent.currentTarget : this,
 
 const HASTOUCHEVENTS = typeof $w.ontouchstart!=='undefined'
 
+const EVENTDRAGMOVE = HASTOUCHEVENTS ? 'touchend' : 'mousemove',
+    EVENTDRAGEND = HASTOUCHEVENTS ? 'touchmove' : 'mouseup',
+    EVENTDRAGSTART = HASTOUCHEVENTS ? 'touchstart' : 'mousedown'
+
 let $controls=$doc.getElementById('controls')
 
 let $controlsDragTrigger=$controls.getElementsByTagName('header')[0]
@@ -16,19 +20,17 @@ let $controlsClearCanvas=$controls.getElementsByClassName('clear-canvas')[0]
 
 let $coordOutput=$doc.getElementById('output-coords')
 
+/**
+ * Tracks previous mouse position when dragging over $controls
+ * @type {Array}
+ */
 let controlsDragPos=[0,0]
-//
+/**
+ * Tracks coordinates of the control panel itself (which can't leave the window)
+ * Initial values are the computed .left and .top values of $controls
+ * @type {Array}
+ */
 let controlPos=(function(o){return [o.left,o.top]})($controls.getBoundingClientRect())
-
-let EVENTDRAGMOVE='mousemove',
-    EVENTDRAGEND='mouseup',
-    EVENTDRAGSTART='mousedown'
-
-if(HASTOUCHEVENTS){
-    EVENTDRAGEND='touchend'
-    EVENTDRAGMOVE='touchmove'
-    EVENTDRAGSTART='touchstart'
-}
 
 let $canvas=$doc.getElementById('canvas'),
     ctx=$canvas.getContext('2d')
@@ -175,6 +177,10 @@ let handleClearCanvas=function(){
 $controlsClearCanvas.addEventListener('click', handleClearCanvas)
 
 
+/**
+ * Syncs canvasDragPos with current cursor position when dragging
+ * Also updates $coordOutput
+ */
 setUpDragListeners($canvas, function(coords){
     currentlyDraggingCanvas=true
     canvasDragPos[0]=coords[0]
@@ -188,7 +194,7 @@ setUpDragListeners($canvas, function(coords){
     $coordOutput.innerHTML=Math.floor(canvasDragPos[0])+', '+Math.floor(canvasDragPos[1])
 },function(){
     currentlyDraggingCanvas=false
-    $coordOutput.innerHTML='no drawing'
+    $coordOutput.innerHTML='not drawing rn'
 })
 
 
@@ -211,27 +217,23 @@ let handleResize=function(){
 handleResize()
 $w.addEventListener('resize', handleResize)
 
-let circleRadius=100,circleX=canvasWidth/2,circleY=canvasHeight/2
+let circleRadius=100,circleX=canvasWidth/2,circleY=canvasHeight/2,colorSeed=Math.random()*360
 
 let animate=function(){
     circleRadius = 3 //100+10*Math.sin(animTick*0.1)
+    circleX = canvasWidth/2 + 200 * Math.sin(colorSeed + 0.01 * animTick)
+    circleY = canvasHeight/2 + 200 * Math.sin(colorSeed + 0.01 * animTick * Math.sqrt(3))
+
     //ctx.clearRect(0,0,canvasWidth,canvasHeight)
     ctx.beginPath()
     ctx.arc(circleX,circleY,circleRadius,0,2*Math.PI)
-    ctx.fillStyle='rgb('+ Math.floor(animTick/100)%255 + ',' + Math.floor(animTick/100 + 85)%255 + ',' + Math.floor(animTick/100 + 170)%255 + ')'
+    ctx.fillStyle='hsl('+ Math.floor(animTick/10+colorSeed)%360 + ',70%,50%)'
     ctx.fill();ctx.closePath()
-    circleX = canvasWidth/2 + 200 * Math.sin(0.01 * animTick * 1)
-    circleY = canvasHeight/2 + 200 * Math.sin(0.01 * animTick * Math.sqrt(3))
-
-
-
-
 
     animTick++
     //if($controlToggleAnimation.checked) // REDUNDANT WITH cancelAnimationFrame in handleAnimationToggle()
     currentAnimationFrame=$w.requestAnimationFrame(animate)
 }
-
 
 
 
