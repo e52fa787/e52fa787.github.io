@@ -6,8 +6,8 @@ const $w=globalLoadEvent ? globalLoadEvent.currentTarget : this,
 
 const HASTOUCHEVENTS = typeof $w.ontouchstart!=='undefined'
 
-const EVENTDRAGMOVE = HASTOUCHEVENTS ? 'touchend' : 'mousemove',
-    EVENTDRAGEND = HASTOUCHEVENTS ? 'touchmove' : 'mouseup',
+const EVENTDRAGMOVE = HASTOUCHEVENTS ? 'touchmove' : 'mousemove',
+    EVENTDRAGEND = HASTOUCHEVENTS ? 'touchend' : 'mouseup',
     EVENTDRAGSTART = HASTOUCHEVENTS ? 'touchstart' : 'mousedown'
 
 let $controls=$doc.getElementById('controls'),
