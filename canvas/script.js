@@ -260,7 +260,7 @@ let scalarMult=(scalar, vector) => vector.map(x => scalar * x)
  */
 let normSquared=(vector)=>vector.reduce((sumSoFar, x)=>(sumSoFar + x*x),0)
 
-const L0=0  , g=9.81, kOverM=1, pxPerMeter=10
+const L0=10, g=9.81, kOverM=1+Math.random(), pxPerMeter=10
 
 let pivotCoords=[canvasWidth/2, canvasHeight/4],
     pendulumCoords=vectorAdd(pivotCoords,[0,100]),
