@@ -23,6 +23,18 @@ let $controlsResetCanvas=$controls.getElementsByClassName('reset-canvas')[0]
 
 let $coordOutput=$doc.getElementById('output-coords')
 
+let isWindowActive=true
+
+let handleWindowBlur=function(){
+    isWindowActive=false
+}
+$w.addEventListener('blur', handleWindowBlur)
+
+let handleWindowFocus=function(){
+    isWindowActive=true
+}
+$w.addEventListener('focus', handleWindowFocus)
+
 /**
  * Tracks previous mouse position when dragging over $controls
  * @type {Array}
@@ -35,18 +47,31 @@ let controlsDragPos=[0,0]
  */
 let controlPos=(function(o){return [o.left,o.top]})($controls.getBoundingClientRect())
 
-let $canvas=$doc.getElementById('canvas'),
-    ctx=$canvas.getContext('2d')
+let $canvas=$doc.getElementById('canvas')
+/**
+ * @type {CanvasRenderingContext2D}
+ */
+let ctx=$canvas.getContext('2d')
 
 let canvasDragPos=[0,0],
     currentlyDraggingCanvas=false,
     currentAnimationFrame,
     canvasWidth,
     canvasHeight,
-    animTick=0
-
+    animTick=0,
+    canvasTime=0,
+    timeSinceLastFrame=0
 
 // CONTROL PANEL
+
+/**
+ * Copies the values of src to destination without changing the reference of desination
+ * @param {Array} destination 
+ * @param {Array} src 
+ */
+let copyArrayTo=function(destination, src){
+    destination.splice(0,destination.length,...src)
+}
 
 /**
  * Extracts [x,y] coordinates from a touch/mouse event
@@ -55,17 +80,37 @@ let canvasDragPos=[0,0],
  */
 
 let extractCoordsFromEvent=function(e){
-    let pos=[0,0]
     if(HASTOUCHEVENTS) {
-        const { touches, changedTouches } = e.originalEvent ?? e;
-        const touch = touches[0] ?? changedTouches[0];
-        pos[0] = touch.clientX;
-        pos[1] = touch.clientY;
+        const { touches, changedTouches } = e.originalEvent ?? e
+        const touch = touches[0] ?? changedTouches[0]
+        return [touch.clientX,touch.clientY]
     }else{
-        pos[0] = e.clientX;
-        pos[1] = e.clientY;
+        return [e.clientX, e.clientY]
     }
-    return pos
+}
+/**
+ * Moves coords [x,y] within the range 0<=x<=horizontalMax, 0<=y<=verticalMax
+ * @param {Array} coords Array of two numbers representing coordinates
+ * @param {Number} horizontalMax 
+ * @param {Number} verticalMax 
+ * @returns {Array} Array of coordinates
+ */
+let moveCoordsWithinWindow=function(coords, horizontalMax, verticalMax){
+    let [left,top]=coords
+    if(left<0){
+        left=0
+    }else if(left>horizontalMax){
+        left=horizontalMax
+    }
+    //if(top>0 && top<=verticalMax){
+    //    top=verticalMax
+    //}else 
+    if(top<0){
+        top=0
+    }else if(top>verticalMax){
+        top=verticalMax
+    }
+    return [left,top]
 }
 /**
  * Attaches and removes event listeners for draggable objects and calculates mouse coordinates
@@ -98,50 +143,29 @@ let setUpDragListeners=function($elem, dragStart, dragMove, dragEnd){
     }
     $elem.addEventListener(EVENTDRAGSTART, dragStartListener)
 }
-
+/**
+ * Set up dragging for $controls
+ */
 setUpDragListeners($controlsDragTrigger, function(coords){
-    controlsDragPos[0] = coords[0]
-    controlsDragPos[1] = coords[1]
+    copyArrayTo(controlsDragPos,coords)
     $controls.classList.add('currentlyDragging')
 }, function(coords){
-    let computedLeft,
-        computedTop
-
     // compute new positions based on mouse movement
 
     controlPos[0] += coords[0] - controlsDragPos[0]
     controlPos[1] += coords[1] - controlsDragPos[1]
 
     //store old positions
-
-    controlsDragPos[0]=coords[0]
-    controlsDragPos[1]=coords[1]
+    copyArrayTo(controlsDragPos, coords)
 
     //$controlsDragTrigger.innerHTML=controlsDragPos[0]+', '+controlsDragPos[1]
 
-    // Move $controls horizontally
-
-    if(controlPos[0] > 0 && controlPos[0] + $controls.clientWidth <= $body.clientWidth){
-        computedLeft=controlPos[0]
-    }else if(controlPos[0] < 0){
-        computedLeft=0
-    }else if(controlPos[0] + $controls.clientWidth > $body.clientWidth){
-        computedLeft=$body.clientWidth-$controls.clientWidth
-    }
-
-    // Move $controls vertically
-
-    if(controlPos[1] > 0 && controlPos[1] + $controls.clientHeight <= $body.clientHeight){
-        computedTop=controlPos[1]
-    }else if(controlPos[1] < 0){
-        computedTop=0
-    }else if(controlPos[1] + $controls.clientHeight > $body.clientHeight){
-        computedTop=$body.clientHeight-$controls.clientHeight
-    }
+    let [computedLeft, computedTop]=moveCoordsWithinWindow(controlPos,$body.clientWidth-$controls.clientWidth,$body.clientHeight-$controls.clientHeight)
 
     $controls.style.transform='translate('+computedLeft+'px,'+computedTop+'px)'
 },function(){
     $controls.classList.remove('currentlyDragging')
+    moveCoordsWithinWindow(controlPos,$body.clientWidth-$controls.clientWidth,$body.clientHeight-$controls.clientHeight, true)
 })
 
 /**
@@ -179,44 +203,19 @@ $controlToggleAnimation.addEventListener('change',handleAnimationToggle)
 /**
  * Clears canvas
  */
-let handleClearCanvas=function(){
+let clearCanvas=function(){
     ctx.clearRect(0,0,canvasWidth,canvasHeight)
 }
-$controlsClearCanvas.addEventListener('click', handleClearCanvas)
+$controlsClearCanvas.addEventListener('click', clearCanvas)
 /**
  * Resets canvas
  */
 let handleResetCanvas=function(){
-    randomSeed1=Math.random()
-    randomSeed2=Math.random()
-    handleClearCanvas()
+    animTick=0
+    currentPhaseSpaceCoords=[g/kOverM,0,0,0]
+    clearCanvas()
 }
 $controlsResetCanvas.addEventListener('click', handleResetCanvas)
-
-/**
- * Syncs canvasDragPos with current cursor position when dragging
- * Also updates $coordOutput
- */
-setUpDragListeners($canvas, function(coords){
-    currentlyDraggingCanvas=true
-    canvasDragPos[0]=coords[0]
-    canvasDragPos[1]=coords[1]
-
-    $coordOutput.innerHTML=Math.floor(canvasDragPos[0])+', '+Math.floor(canvasDragPos[1])
-},function(coords){
-    canvasDragPos[0]=coords[0]
-    canvasDragPos[1]=coords[1]
-
-    $coordOutput.innerHTML=Math.floor(canvasDragPos[0])+', '+Math.floor(canvasDragPos[1])
-},function(){
-    currentlyDraggingCanvas=false
-    $coordOutput.innerHTML='no dragging rn'
-})
-
-
-
-
-
 
 
 
@@ -233,31 +232,134 @@ let handleResize=function(){
 handleResize()
 $w.addEventListener('resize', handleResize)
 
-let circleRadius,circleX,circleY,randomSeed1=Math.random(),randomSeed2=Math.random()
+/**
+ * Adds two arrays termwise
+ * @param {Array} a 
+ * @param {Array} b 
+ * @returns {Array} Result is the same size as a (and should be the same size as b, but isn't checked)
+ */
+let vectorAdd=(a,b) => a.map((x,i) => x+b[i])
+/**
+ * Subtracts two arrays termwise
+ * @param {Array} a 
+ * @param {Array} b 
+ * @returns {Array} Result is the same size as a (and should be the same size as b, but isn't checked)
+ */
+let vectorSubtract=(a,b) => a.map((x,i) => x-b[i])
+/**
+ * Multiplies array termwise by scalar
+ * @param {Number} scalar 
+ * @param {Array} vector 
+ * @returns {Array} same size as vector, with each term multiplied by scalar
+ */
+let scalarMult=(scalar, vector) => vector.map(x => scalar * x)
+/**
+ * Sum of termwise squares of array
+ * @param {Array} vector 
+ * @returns {Number}
+ */
+let normSquared=(vector)=>vector.reduce((sumSoFar, x)=>(sumSoFar + x*x),0)
 
-let animate=function(){
-    circleRadius = 3 //100+10*Math.sin(animTick*0.1)
-    circleX = canvasWidth/2 + 200 * Math.sin(randomSeed1 + 0.01 * animTick)
-    circleY = canvasHeight/2 + 200 * Math.sin(randomSeed2 + 0.01 * animTick * randomSeed1 * 2)
+const L0=0  , g=9.81, kOverM=1, pxPerMeter=10
 
-    //ctx.clearRect(0,0,canvasWidth,canvasHeight)
-    ctx.beginPath()
-    ctx.arc(circleX,circleY,circleRadius,0,2*Math.PI)
-    ctx.fillStyle='hsl('+ Math.floor(animTick*0.2*randomSeed2+ randomSeed1 *360)%360 + ',70%,50%)'
-    ctx.fill();ctx.closePath()
+let pivotCoords=[canvasWidth/2, canvasHeight/4],
+    pendulumCoords=vectorAdd(pivotCoords,[0,100]),
+    pxPendulumBobRadius=15,
+    currentlyDraggingBob=false,
+    currentPhaseSpaceCoords=[g/kOverM,0,0,0]
 
+let pendulumCoordsToPhaseSpace=function(left,top){
+    let diff=scalarMult(1/pxPerMeter,vectorSubtract([left,top], pivotCoords)),
+        magnitude=Math.sqrt(normSquared(diff)),
+        x=magnitude-L0,
+        theta=Math.atan2(diff[0],diff[1])
+    //if(x<0){x=0;console.warn('pendulum x coordinate dipped below 0')}
+    return [x, theta, 0, 0]
+}
+
+let phaseSpaceToPendulumCoords=function(x, theta, xPrime, thetaPrime){
+    //if(x<0){x=0;console.warn('pendulum x coordinate dipped below 0')}
+    let L=L0+x
+    return vectorAdd(pivotCoords,scalarMult(L*pxPerMeter,[Math.sin(theta),Math.cos(theta)]))
+}
+
+let pendulumFunction=function(x, theta, xPrime, thetaPrime){
+    let l=L0+x,
+        lInverse=1/l
+    return [
+        xPrime, thetaPrime,
+        l*thetaPrime*thetaPrime-kOverM*x+g*Math.cos(theta),
+        -(g*Math.sin(theta)+2*xPrime*thetaPrime)*lInverse
+    ]
+}
+
+
+let nextStepRK4=function(curr,h,f=pendulumFunction){
+    let k1=f(...curr),
+        k2=f(...vectorAdd(curr,scalarMult(h/2,k1))),
+        k3=f(...vectorAdd(curr,scalarMult(h/2,k2))),
+        k4=f(...vectorAdd(curr,scalarMult(h,k3)))
+    return vectorAdd(curr,vectorAdd(scalarMult(h/6,vectorAdd(k1,k4)),scalarMult(h/3,vectorAdd(k2,k3))))
+}
+
+let animate=function(timeStamp){
+    clearCanvas()
     animTick++
+    timeStamp = timeStamp || $doc.timeline.currentTime
+    timeSinceLastFrame = Math.min(timeStamp - canvasTime, 30)
+    canvasTime = timeStamp
+
+
+    if(currentlyDraggingBob){
+        copyArrayTo(pendulumCoords,canvasDragPos)
+        copyArrayTo(currentPhaseSpaceCoords, pendulumCoordsToPhaseSpace(...pendulumCoords))
+    }else{
+        currentPhaseSpaceCoords=nextStepRK4(currentPhaseSpaceCoords,timeSinceLastFrame*1e-3)
+        copyArrayTo(pendulumCoords, phaseSpaceToPendulumCoords(...currentPhaseSpaceCoords))
+    }
+    //$controlsDragTrigger.innerHTML=pendulumCoords.map((x)=>parseInt(x)).toString()
+
+    ctx.beginPath()
+    ctx.arc(...pivotCoords, 10, 0, 2*Math.PI)
+    ctx.fillStyle='#333'
+    ctx.fill()
+
+    ctx.moveTo(...pivotCoords)
+    ctx.lineWidth=3
+    ctx.lineTo(...pendulumCoords)
+    ctx.strokeStyle='#333'
+    ctx.stroke()
+    
+    ctx.beginPath()
+    ctx.arc(...pendulumCoords, pxPendulumBobRadius, 0, 2*Math.PI)
+    ctx.fillStyle='#ccc'
+    ctx.fill()
+
+
     //if($controlToggleAnimation.checked) // REDUNDANT WITH cancelAnimationFrame in handleAnimationToggle()
     currentAnimationFrame=$w.requestAnimationFrame(animate)
 }
 
+/**
+ * Syncs canvasDragPos with current cursor position when dragging
+ * Also updates $coordOutput
+ */
+setUpDragListeners($canvas, function(coords){
+    currentlyDraggingCanvas=true
+    copyArrayTo(canvasDragPos,coords)
 
+    if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=pxPendulumBobRadius*pxPendulumBobRadius){
+        currentlyDraggingBob=true
+    }
 
-
-
-
-
-
-
+    $coordOutput.innerHTML=Math.floor(canvasDragPos[0])+', '+Math.floor(canvasDragPos[1])
+},function(coords){
+    copyArrayTo(canvasDragPos,coords)
+    $coordOutput.innerHTML=Math.floor(canvasDragPos[0])+', '+Math.floor(canvasDragPos[1])
+},function(){
+    currentlyDraggingCanvas=false
+    currentlyDraggingBob=false
+    $coordOutput.innerHTML='no dragging rn'
+})
 
 })
