@@ -260,16 +260,17 @@ let scalarMult=(scalar, vector) => vector.map(x => scalar * x)
  */
 let normSquared=(vector)=>vector.reduce((sumSoFar, x)=>(sumSoFar + x*x),0)
 
-const L0=10, g=9.81, kOverM=1+Math.random(), pxPerMeter=10
+const L0=1, g=9.81, kOverM=3, pxPerMeter=100
 
-let pivotCoords=[canvasWidth/2, canvasHeight/4],
-    pendulumCoords=vectorAdd(pivotCoords,[0,100]),
-    pxPendulumBobRadius=15,
+let pivotCoords=[canvasWidth/(pxPerMeter*2), canvasHeight/(pxPerMeter*6)],
+    pendulumCoords=vectorAdd(pivotCoords,[0,100/pxPerMeter]),
+    pendulumBobRadius=0.15,
+    pivotRadius=0.15,
     currentlyDraggingBob=false,
     currentPhaseSpaceCoords=[g/kOverM,0,0,0]
 
 let pendulumCoordsToPhaseSpace=function(left,top){
-    let diff=scalarMult(1/pxPerMeter,vectorSubtract([left,top], pivotCoords)),
+    let diff=vectorSubtract([left,top], pivotCoords),
         magnitude=Math.sqrt(normSquared(diff)),
         x=magnitude-L0,
         theta=Math.atan2(diff[0],diff[1])
@@ -280,7 +281,7 @@ let pendulumCoordsToPhaseSpace=function(left,top){
 let phaseSpaceToPendulumCoords=function(x, theta, xPrime, thetaPrime){
     //if(x<0){x=0;console.warn('pendulum x coordinate dipped below 0')}
     let L=L0+x
-    return vectorAdd(pivotCoords,scalarMult(L*pxPerMeter,[Math.sin(theta),Math.cos(theta)]))
+    return vectorAdd(pivotCoords,scalarMult(L,[Math.sin(theta),Math.cos(theta)]))
 }
 
 let pendulumFunction=function(x, theta, xPrime, thetaPrime){
@@ -315,25 +316,30 @@ let animate=function(timeStamp){
         copyArrayTo(currentPhaseSpaceCoords, pendulumCoordsToPhaseSpace(...pendulumCoords))
     }else{
         currentPhaseSpaceCoords=nextStepRK4(currentPhaseSpaceCoords,timeSinceLastFrame*1e-3)
+        //collision detection
+        
         copyArrayTo(pendulumCoords, phaseSpaceToPendulumCoords(...currentPhaseSpaceCoords))
     }
     //$controlsDragTrigger.innerHTML=pendulumCoords.map((x)=>parseInt(x)).toString()
 
     ctx.beginPath()
-    ctx.arc(...pivotCoords, 10, 0, 2*Math.PI)
+    ctx.scale(pxPerMeter,pxPerMeter)
+    ctx.arc(...pivotCoords, pivotRadius, 0, 2*Math.PI)
     ctx.fillStyle='#333'
     ctx.fill()
 
     ctx.moveTo(...pivotCoords)
-    ctx.lineWidth=3
+    ctx.lineWidth=3/pxPerMeter
     ctx.lineTo(...pendulumCoords)
     ctx.strokeStyle='#333'
     ctx.stroke()
     
     ctx.beginPath()
-    ctx.arc(...pendulumCoords, pxPendulumBobRadius, 0, 2*Math.PI)
+    ctx.arc(...pendulumCoords, pendulumBobRadius, 0, 2*Math.PI)
     ctx.fillStyle='#ccc'
     ctx.fill()
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
 
 
     //if($controlToggleAnimation.checked) // REDUNDANT WITH cancelAnimationFrame in handleAnimationToggle()
@@ -346,15 +352,15 @@ let animate=function(timeStamp){
  */
 setUpDragListeners($canvas, function(coords){
     currentlyDraggingCanvas=true
-    copyArrayTo(canvasDragPos,coords)
+    copyArrayTo(canvasDragPos,scalarMult(1/pxPerMeter,coords))
 
-    if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=pxPendulumBobRadius*pxPendulumBobRadius){
+    if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=Math.pow(pendulumBobRadius,2)){
         currentlyDraggingBob=true
     }
 
     $coordOutput.innerHTML=Math.floor(canvasDragPos[0])+', '+Math.floor(canvasDragPos[1])
 },function(coords){
-    copyArrayTo(canvasDragPos,coords)
+    copyArrayTo(canvasDragPos,scalarMult(1/pxPerMeter,coords))
     $coordOutput.innerHTML=Math.floor(canvasDragPos[0])+', '+Math.floor(canvasDragPos[1])
 },function(){
     currentlyDraggingCanvas=false
