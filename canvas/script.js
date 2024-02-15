@@ -16,12 +16,12 @@ let $controls=$doc.getElementById('controls'),
 let $controlsDragTrigger=$controls.getElementsByTagName('header')[0]
 let $controlsList=$controls.getElementsByTagName('ul')[0]
 let $controlTogglePanel=$controls.getElementsByClassName('toggle-dropdown')[0]
-let $controlToggleAnimation=$controls.getElementsByClassName('toggle-animation')[0]
+let $controlToggleAnimation=$doc.getElementById('toggle-animation')
 
-let $controlsClearCanvas=$controls.getElementsByClassName('clear-canvas')[0]
-let $controlsResetCanvas=$controls.getElementsByClassName('reset-canvas')[0]
+let $controlsResetCanvas=$doc.getElementById('reset-canvas')
 
-let $coordOutput=$doc.getElementById('output-coords')
+let $coordOutput=$doc.getElementById('output-coords'),
+    outputMsgNotDragging=$coordOutput.innerHTML
 
 let isWindowActive=true
 
@@ -63,6 +63,16 @@ let canvasDragPos=[0,0],
     timeSinceLastFrame=0
 
 // CONTROL PANEL
+
+/**
+ * Rounds number to a specified number of decimal places
+ * @param {Number} number number to round
+ * @param {Number} [dp=1] number of decimal places to round to
+ * @returns 
+ */
+let roundToDecimal=function(number,dp=1){
+    return parseInt(number*(10**dp))/(10**dp)
+}
 
 /**
  * Copies the values of src to destination without changing the reference of desination
@@ -206,7 +216,7 @@ $controlToggleAnimation.addEventListener('change',handleAnimationToggle)
 let clearCanvas=function(){
     ctx.clearRect(0,0,canvasWidth,canvasHeight)
 }
-$controlsClearCanvas.addEventListener('click', clearCanvas)
+//$controlsClearCanvas.addEventListener('click', clearCanvas)
 /**
  * Resets canvas
  */
@@ -267,7 +277,7 @@ let pivotCoords=[canvasWidth/(pxPerMeter*2), canvasHeight/(pxPerMeter*6)],
     pendulumBobRadius=0.15,
     pivotRadius=0.15,
     currentlyDraggingBob=false,
-    currentPhaseSpaceCoords=[g/kOverM,0,0,0]
+    currentPhaseSpaceCoords=[g/kOverM,0.1,0,0]
 
 let pendulumCoordsToPhaseSpace=function(left,top){
     let diff=vectorSubtract([left,top], pivotCoords),
@@ -317,10 +327,13 @@ let animate=function(timeStamp){
     }else{
         currentPhaseSpaceCoords=nextStepRK4(currentPhaseSpaceCoords,timeSinceLastFrame*1e-3)
         //collision detection
-        
+        if(currentPhaseSpaceCoords[0]+L0<pendulumBobRadius+pivotRadius){
+            currentPhaseSpaceCoords[0]=pivotRadius+pendulumBobRadius-L0
+            currentPhaseSpaceCoords[2]=-currentPhaseSpaceCoords[2]
+        }
         copyArrayTo(pendulumCoords, phaseSpaceToPendulumCoords(...currentPhaseSpaceCoords))
     }
-    //$controlsDragTrigger.innerHTML=pendulumCoords.map((x)=>parseInt(x)).toString()
+    //$controlsDragTrigger.innerHTML=pendulumCoords.map((x)=>roundToDecimal(x)).toString()
 
     ctx.beginPath()
     ctx.scale(pxPerMeter,pxPerMeter)
@@ -354,18 +367,18 @@ setUpDragListeners($canvas, function(coords){
     currentlyDraggingCanvas=true
     copyArrayTo(canvasDragPos,scalarMult(1/pxPerMeter,coords))
 
-    if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=Math.pow(pendulumBobRadius,2)){
+    if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=(pendulumBobRadius**2)){
         currentlyDraggingBob=true
     }
 
-    $coordOutput.innerHTML=Math.floor(canvasDragPos[0])+', '+Math.floor(canvasDragPos[1])
+    $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
 },function(coords){
     copyArrayTo(canvasDragPos,scalarMult(1/pxPerMeter,coords))
-    $coordOutput.innerHTML=Math.floor(canvasDragPos[0])+', '+Math.floor(canvasDragPos[1])
+    $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
 },function(){
     currentlyDraggingCanvas=false
     currentlyDraggingBob=false
-    $coordOutput.innerHTML='no dragging rn'
+    $coordOutput.innerHTML=outputMsgNotDragging
 })
 
 })

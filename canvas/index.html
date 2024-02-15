@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <title>Canvas demo</title>
+        <title>canvas demo</title>
         <link href="style.css" rel="stylesheet" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         <style id="css-output"></style>
@@ -11,9 +11,9 @@
             <button class="toggle-dropdown"></button>
             <header draggable="true">options</header>
             <ul>
-                <li>animation: <input type="checkbox" class="toggle-animation" /></li>
-                <li><button class="clear-canvas">clear</button><button class="reset-canvas">reset</button></li>
-                <li id="output-coords">no dragging rn</li>
+                <li><label for="toggle-animation">animation</label><input type="checkbox" id="toggle-animation" /></li>
+                <li><button id="reset-canvas">reset</button></li>
+                <li id="output-coords">not dragging</li>
             </ul>
         </div>
         <canvas id="canvas">Your browser doesn't support HTML5 Canvas :(</canvas>
