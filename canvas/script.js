@@ -54,8 +54,7 @@ let $canvas=$doc.getElementById('canvas')
 let ctx=$canvas.getContext('2d')
 
 let canvasDragPos=[0,0],
-    currentlyDraggingCanvas=false,
-    currentAnimationFrame,
+    currentAnimationFrame, // stores requestAnimationFrame output for cancelling
     canvasWidth,
     canvasHeight,
     animTick=0,
@@ -231,6 +230,9 @@ $controlsResetCanvas.addEventListener('click', handleResetCanvas)
 
 // CANVAS STUFF
 
+/**
+ * Makes sure canvas width and height continue to fill up Window when resizing
+ */
 let handleResize=function(){
     canvasWidth=$w.innerWidth
     canvasHeight=$w.innerHeight
@@ -294,17 +296,30 @@ let phaseSpaceToPendulumCoords=function(x, theta, xPrime, thetaPrime){
     return vectorAdd(pivotCoords,scalarMult(L,[Math.sin(theta),Math.cos(theta)]))
 }
 
+/**
+ * Calculates the (termwise) derivatives of the array [x, theta, xPrime, thetaPrime]
+ * @param {Number} x deviation from rest length
+ * @param {Number} theta angle with vertical in radians (down is zero, right is positive)
+ * @param {Number} xPrime Time derivataive of x
+ * @param {Number} thetaPrime Time derivative of theta
+ * @returns 
+ */
 let pendulumFunction=function(x, theta, xPrime, thetaPrime){
-    let l=L0+x,
-        lInverse=1/l
+    let l=L0+x
     return [
         xPrime, thetaPrime,
         l*thetaPrime*thetaPrime-kOverM*x+g*Math.cos(theta),
-        -(g*Math.sin(theta)+2*xPrime*thetaPrime)*lInverse
+        -(g*Math.sin(theta)+2*xPrime*thetaPrime)/l
     ]
 }
 
-
+/**
+ * Uses order-4 Runge-Kutta to compute future coords cuz I'm lazy
+ * @param {Array} curr Array of current polar coordinates and their derivatives wrt time
+ * @param {*} h Timestep
+ * @param {*} [f=pendulumFunction] Derivative function
+ * @returns 
+ */
 let nextStepRK4=function(curr,h,f=pendulumFunction){
     let k1=f(...curr),
         k2=f(...vectorAdd(curr,scalarMult(h/2,k1))),
@@ -313,6 +328,10 @@ let nextStepRK4=function(curr,h,f=pendulumFunction){
     return vectorAdd(curr,vectorAdd(scalarMult(h/6,vectorAdd(k1,k4)),scalarMult(h/3,vectorAdd(k2,k3))))
 }
 
+/**
+ * Renders one frame of the canvas
+ * @param {Number} timeStamp Timeline's current time in ms, passed as parameter by requestAnimationFrame
+ */
 let animate=function(timeStamp){
     clearCanvas()
     animTick++
@@ -322,19 +341,24 @@ let animate=function(timeStamp){
 
 
     if(currentlyDraggingBob){
+        // no physics calculations, just move the bob to the mouse
         copyArrayTo(pendulumCoords,canvasDragPos)
+        // convert to polar coords
         copyArrayTo(currentPhaseSpaceCoords, pendulumCoordsToPhaseSpace(...pendulumCoords))
     }else{
+        // compute next step using nextStepRK4
         currentPhaseSpaceCoords=nextStepRK4(currentPhaseSpaceCoords,timeSinceLastFrame*1e-3)
         //collision detection
         if(currentPhaseSpaceCoords[0]+L0<pendulumBobRadius+pivotRadius){
             currentPhaseSpaceCoords[0]=pivotRadius+pendulumBobRadius-L0
             currentPhaseSpaceCoords[2]=-currentPhaseSpaceCoords[2]
         }
+        // convert to cartesian coords
         copyArrayTo(pendulumCoords, phaseSpaceToPendulumCoords(...currentPhaseSpaceCoords))
     }
     //$controlsDragTrigger.innerHTML=pendulumCoords.map((x)=>roundToDecimal(x)).toString()
 
+    //draw and stuff
     ctx.beginPath()
     ctx.scale(pxPerMeter,pxPerMeter)
     ctx.arc(...pivotCoords, pivotRadius, 0, 2*Math.PI)
@@ -364,7 +388,6 @@ let animate=function(timeStamp){
  * Also updates $coordOutput
  */
 setUpDragListeners($canvas, function(coords){
-    currentlyDraggingCanvas=true
     copyArrayTo(canvasDragPos,scalarMult(1/pxPerMeter,coords))
 
     if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=(pendulumBobRadius**2)){
@@ -376,7 +399,6 @@ setUpDragListeners($canvas, function(coords){
     copyArrayTo(canvasDragPos,scalarMult(1/pxPerMeter,coords))
     $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
 },function(){
-    currentlyDraggingCanvas=false
     currentlyDraggingBob=false
     $coordOutput.innerHTML=outputMsgNotDragging
 })
