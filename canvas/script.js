@@ -47,29 +47,15 @@ let controlsDragPos=[0,0]
  */
 let controlPos=(function(o){return [o.left,o.top]})($controls.getBoundingClientRect())
 
-let $canvas=$doc.getElementById('canvas')
-/**
- * @type {CanvasRenderingContext2D}
- */
-let ctx=$canvas.getContext('2d')
-
-let canvasDragPos=[0,0],
-    currentAnimationFrame, // stores requestAnimationFrame output for cancelling
-    canvasWidth,
-    canvasHeight,
-    animTick=0,
-    canvasTime=0,
-    timeSinceLastFrame=0
-
 // CONTROL PANEL
 
 /**
  * Rounds number to a specified number of decimal places
  * @param {Number} number number to round
- * @param {Number} [dp=1] number of decimal places to round to
+ * @param {Number} [dp=2] number of decimal places to round to
  * @returns 
  */
-let roundToDecimal=function(number,dp=1){
+let roundToDecimal=function(number,dp=2){
     return parseInt(number*(10**dp))/(10**dp)
 }
 
@@ -230,6 +216,23 @@ $controlsResetCanvas.addEventListener('click', handleResetCanvas)
 
 // CANVAS STUFF
 
+let $canvas=$doc.getElementById('canvas')
+/**
+ * @type {CanvasRenderingContext2D}
+ */
+let ctx=$canvas.getContext('2d')
+
+let canvasDragPos=[0,0],
+    canvasDragVel=[0,0],
+    canvasDragTime=0,
+    canvasDragStopTimeout=0,
+    currentAnimationFrame, // stores requestAnimationFrame output for cancelling
+    canvasWidth,
+    canvasHeight,
+    animTick=0,
+    canvasTime=0,
+    timeSinceLastFrame=0
+
 /**
  * Makes sure canvas width and height continue to fill up Window when resizing
  */
@@ -272,6 +275,8 @@ let scalarMult=(scalar, vector) => vector.map(x => scalar * x)
  */
 let normSquared=(vector)=>vector.reduce((sumSoFar, x)=>(sumSoFar + x*x),0)
 
+const BOBCLICKAREASCALEFACTOR = HASTOUCHEVENTS ? 4 : 1
+
 const L0=1, g=9.81, kOverM=3, pxPerMeter=100
 
 let pivotCoords=[canvasWidth/(pxPerMeter*2), canvasHeight/(pxPerMeter*6)],
@@ -281,17 +286,25 @@ let pivotCoords=[canvasWidth/(pxPerMeter*2), canvasHeight/(pxPerMeter*6)],
     currentlyDraggingBob=false,
     currentPhaseSpaceCoords=[g/kOverM,0.1,0,0]
 
-let pendulumCoordsToPhaseSpace=function(left,top){
+//let sigmoid = (x, max=1, slope=1)=>Math.tanh(x*slope/max)*max
+
+let pendulumCoordsToPhaseSpace=function(left,top, leftVel=0, topVel=0){
     let diff=vectorSubtract([left,top], pivotCoords),
         magnitude=Math.sqrt(normSquared(diff)),
         x=magnitude-L0,
-        theta=Math.atan2(diff[0],diff[1])
-    //if(x<0){x=0;console.warn('pendulum x coordinate dipped below 0')}
-    return [x, theta, 0, 0]
+        theta=Math.atan2(diff[0],diff[1]),
+        xPrime=0,
+        thetaPrime=0
+    if((leftVel || topVel) && magnitude>0){
+        thetaPrime=(leftVel*diff[1]-topVel*diff[0])/magnitude
+        xPrime=(diff[0]*leftVel+diff[1]*topVel)/magnitude
+        
+        $controlsDragTrigger.innerHTML = roundToDecimal(leftVel)+', '+roundToDecimal(topVel)+'; '+roundToDecimal(xPrime)+', '+roundToDecimal(thetaPrime)
+    }
+    return [x, theta, xPrime, thetaPrime]
 }
 
 let phaseSpaceToPendulumCoords=function(x, theta, xPrime, thetaPrime){
-    //if(x<0){x=0;console.warn('pendulum x coordinate dipped below 0')}
     let L=L0+x
     return vectorAdd(pivotCoords,scalarMult(L,[Math.sin(theta),Math.cos(theta)]))
 }
@@ -317,14 +330,13 @@ let pendulumFunction=function(x, theta, xPrime, thetaPrime){
  * Uses order-4 Runge-Kutta to compute future coords cuz I'm lazy
  * @param {Array} curr Array of current polar coordinates and their derivatives wrt time
  * @param {*} h Timestep
- * @param {*} [f=pendulumFunction] Derivative function
  * @returns 
  */
-let nextStepRK4=function(curr,h,f=pendulumFunction){
-    let k1=f(...curr),
-        k2=f(...vectorAdd(curr,scalarMult(h/2,k1))),
-        k3=f(...vectorAdd(curr,scalarMult(h/2,k2))),
-        k4=f(...vectorAdd(curr,scalarMult(h,k3)))
+let nextStepRK4=function(curr,h){
+    let k1=pendulumFunction(...curr),
+        k2=pendulumFunction(...vectorAdd(curr,scalarMult(h/2,k1))),
+        k3=pendulumFunction(...vectorAdd(curr,scalarMult(h/2,k2))),
+        k4=pendulumFunction(...vectorAdd(curr,scalarMult(h,k3)))
     return vectorAdd(curr,vectorAdd(scalarMult(h/6,vectorAdd(k1,k4)),scalarMult(h/3,vectorAdd(k2,k3))))
 }
 
@@ -343,8 +355,6 @@ let animate=function(timeStamp){
     if(currentlyDraggingBob){
         // no physics calculations, just move the bob to the mouse
         copyArrayTo(pendulumCoords,canvasDragPos)
-        // convert to polar coords
-        copyArrayTo(currentPhaseSpaceCoords, pendulumCoordsToPhaseSpace(...pendulumCoords))
     }else{
         // compute next step using nextStepRK4
         currentPhaseSpaceCoords=nextStepRK4(currentPhaseSpaceCoords,timeSinceLastFrame*1e-3)
@@ -378,7 +388,6 @@ let animate=function(timeStamp){
 
     ctx.setTransform(1, 0, 0, 1, 0, 0)
 
-
     //if($controlToggleAnimation.checked) // REDUNDANT WITH cancelAnimationFrame in handleAnimationToggle()
     currentAnimationFrame=$w.requestAnimationFrame(animate)
 }
@@ -389,18 +398,36 @@ let animate=function(timeStamp){
  */
 setUpDragListeners($canvas, function(coords){
     copyArrayTo(canvasDragPos,scalarMult(1/pxPerMeter,coords))
-
-    if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=(pendulumBobRadius**2)){
+    canvasDragTime=$doc.timeline.currentTime
+    if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=BOBCLICKAREASCALEFACTOR*(pendulumBobRadius**2)){ // factor of 4 makes it easier to drag on mobile
         currentlyDraggingBob=true
     }
 
     $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
 },function(coords){
-    copyArrayTo(canvasDragPos,scalarMult(1/pxPerMeter,coords))
+    let posNew=scalarMult(1/pxPerMeter,coords),
+        timeDiff=$doc.timeline.currentTime-canvasDragTime
+    canvasDragTime+=timeDiff
+    if(timeDiff>0){
+        copyArrayTo(canvasDragVel, scalarMult(1e3/timeDiff,vectorSubtract(posNew, canvasDragPos)))
+    }
+    copyArrayTo(canvasDragPos,posNew)
+    
+    clearTimeout(canvasDragStopTimeout)
+    canvasDragStopTimeout=setTimeout(function(){
+        copyArrayTo(canvasDragVel,[0,0])
+    }, 300)
+
+    //$controlsDragTrigger.innerHTML=roundToDecimal(canvasDragVel[0])+', '+roundToDecimal(canvasDragVel[1])
+
     $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
 },function(){
-    currentlyDraggingBob=false
-    $coordOutput.innerHTML=outputMsgNotDragging
+    // convert to polar coords
+    if(currentlyDraggingBob){
+        copyArrayTo(currentPhaseSpaceCoords, pendulumCoordsToPhaseSpace(...canvasDragPos, ...canvasDragVel))
+        currentlyDraggingBob=false
+        $coordOutput.innerHTML=outputMsgNotDragging
+    }
 })
 
 })
