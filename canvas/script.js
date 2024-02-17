@@ -153,8 +153,6 @@ setUpDragListeners($controlsDragTrigger, function(coords){
     //store old positions
     copyArrayTo(controlsDragPos, coords)
 
-    //$controlsDragTrigger.innerHTML=controlsDragPos[0]+', '+controlsDragPos[1]
-
     let [computedLeft, computedTop]=moveCoordsWithinWindow(controlPos,$body.clientWidth-$controls.clientWidth,$body.clientHeight-$controls.clientHeight)
 
     $controls.style.transform='translate('+computedLeft+'px,'+computedTop+'px)'
@@ -275,7 +273,8 @@ let scalarMult=(scalar, vector) => vector.map(x => scalar * x)
  */
 let normSquared=(vector)=>vector.reduce((sumSoFar, x)=>(sumSoFar + x*x),0)
 
-const BOBCLICKAREASCALEFACTOR = HASTOUCHEVENTS ? 4 : 1
+const BOBCLICKAREASCALEFACTOR = HASTOUCHEVENTS ? 4 : 1,
+    MAXDRAGVEL=8
 
 const L0=1, g=9.81, kOverM=3, pxPerMeter=100
 
@@ -295,11 +294,16 @@ let pendulumCoordsToPhaseSpace=function(left,top, leftVel=0, topVel=0){
         theta=Math.atan2(diff[0],diff[1]),
         xPrime=0,
         thetaPrime=0
+
     if((leftVel || topVel) && magnitude>0){
+        let velNormSquared=leftVel*leftVel + topVel*topVel
+        if(velNormSquared > MAXDRAGVEL*MAXDRAGVEL){
+            let factor=MAXDRAGVEL*(velNormSquared**-0.5)
+            leftVel*= factor
+            topVel*=factor
+        }
         thetaPrime=(leftVel*diff[1]-topVel*diff[0])/magnitude
         xPrime=(diff[0]*leftVel+diff[1]*topVel)/magnitude
-        
-        $controlsDragTrigger.innerHTML = roundToDecimal(leftVel)+', '+roundToDecimal(topVel)+'; '+roundToDecimal(xPrime)+', '+roundToDecimal(thetaPrime)
     }
     return [x, theta, xPrime, thetaPrime]
 }
@@ -366,7 +370,6 @@ let animate=function(timeStamp){
         // convert to cartesian coords
         copyArrayTo(pendulumCoords, phaseSpaceToPendulumCoords(...currentPhaseSpaceCoords))
     }
-    //$controlsDragTrigger.innerHTML=pendulumCoords.map((x)=>roundToDecimal(x)).toString()
 
     //draw and stuff
     ctx.beginPath()
@@ -417,8 +420,6 @@ setUpDragListeners($canvas, function(coords){
     canvasDragStopTimeout=setTimeout(function(){
         copyArrayTo(canvasDragVel,[0,0])
     }, 300)
-
-    //$controlsDragTrigger.innerHTML=roundToDecimal(canvasDragVel[0])+', '+roundToDecimal(canvasDragVel[1])
 
     $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
 },function(){
