@@ -276,7 +276,7 @@ let normSquared=(vector)=>vector.reduce((sumSoFar, x)=>(sumSoFar + x*x),0)
 const BOBCLICKAREASCALEFACTOR = HASTOUCHEVENTS ? 4 : 1,
     MAXDRAGVEL=8
 
-const L0=1, g=9.81, kOverM=3, pxPerMeter=100
+let L0=1, g=9.81, kOverM=3, pxPerMeter=100, linearDragCoeff=0.1
 
 let pivotCoords=[canvasWidth/(pxPerMeter*2), canvasHeight/(pxPerMeter*6)],
     pendulumCoords=vectorAdd(pivotCoords,[0,100/pxPerMeter]),
@@ -323,18 +323,20 @@ let phaseSpaceToPendulumCoords=function(x, theta, xPrime, thetaPrime){
  */
 let pendulumFunction=function(x, theta, xPrime, thetaPrime){
     let l=L0+x
+        //lthetaPrime2=l*thetaPrime*thetaPrime,
+        //v2=xPrime*xPrime+l*lthetaPrime2
     return [
         xPrime, thetaPrime,
-        l*thetaPrime*thetaPrime-kOverM*x+g*Math.cos(theta),
-        -(g*Math.sin(theta)+2*xPrime*thetaPrime)/l
+        l*thetaPrime*thetaPrime-kOverM*x+g*Math.cos(theta)-linearDragCoeff*xPrime,
+        -(g*Math.sin(theta)+2*xPrime*thetaPrime)/l-linearDragCoeff*thetaPrime
     ]
 }
 
 /**
  * Uses order-4 Runge-Kutta to compute future coords cuz I'm lazy
  * @param {Array} curr Array of current polar coordinates and their derivatives wrt time
- * @param {*} h Timestep
- * @returns 
+ * @param {Number} h Timestep
+ * @returns {Array}
  */
 let nextStepRK4=function(curr,h){
     let k1=pendulumFunction(...curr),
