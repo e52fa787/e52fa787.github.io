@@ -1,4 +1,4 @@
-(function(global, factory){global.addEventListener('load', factory)})(typeof window!=='undefined'?window:this, function(globalLoadEvent){'use strict';
+(typeof window!=='undefined'?window:this).addEventListener('load',function(globalLoadEvent){'use strict';
 
 const $w=globalLoadEvent ? globalLoadEvent.currentTarget : this,
     $doc=$w.document,
@@ -158,7 +158,7 @@ setUpDragListeners($controlsDragTrigger, function(coords){
     $controls.style.transform='translate('+computedLeft+'px,'+computedTop+'px)'
 },function(){
     $controls.classList.remove('currentlyDragging')
-    moveCoordsWithinWindow(controlPos,$body.clientWidth-$controls.clientWidth,$body.clientHeight-$controls.clientHeight, true)
+    copyArrayTo(controlPos,moveCoordsWithinWindow(controlPos,$body.clientWidth-$controls.clientWidth,$body.clientHeight-$controls.clientHeight))
 })
 
 /**
@@ -402,7 +402,7 @@ let animate=function(timeStamp){
 setUpDragListeners($canvas, function(coords){
     copyArrayTo(canvasDragPos,scalarMult(1/pxPerMeter,coords))
     canvasDragTime=$doc.timeline.currentTime
-    if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=BOBCLICKAREASCALEFACTOR*(pendulumBobRadius**2)){ // factor of 4 makes it easier to drag on mobile
+    if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=BOBCLICKAREASCALEFACTOR*(pendulumBobRadius**2)){ // factor makes it easier to drag on mobile
         currentlyDraggingBob=true
     }
 
@@ -419,7 +419,7 @@ setUpDragListeners($canvas, function(coords){
     clearTimeout(canvasDragStopTimeout)
     canvasDragStopTimeout=setTimeout(function(){
         copyArrayTo(canvasDragVel,[0,0])
-    }, 300)
+    }, 100)
 
     $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
 },function(){
