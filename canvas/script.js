@@ -421,7 +421,7 @@ setUpDragListeners($canvas, function(coords){
     clearTimeout(canvasDragStopTimeout)
     canvasDragStopTimeout=setTimeout(function(){
         copyArrayTo(canvasDragVel,[0,0])
-    }, 100)
+    }, 50)
 
     $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
 },function(){
