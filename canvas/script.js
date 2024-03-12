@@ -1,35 +1,41 @@
-(typeof window!=='undefined'?window:this).addEventListener('load',function(globalLoadEvent){'use strict';
+;(typeof window!=='undefined'?window:this).addEventListener('load',function(globalLoadEvent){'use strict';
 
-const $w=globalLoadEvent ? globalLoadEvent.currentTarget : this,
-    $doc=$w.document,
-    $body=$doc.body
+const /** @type {Window} */ $w=globalLoadEvent ? globalLoadEvent.currentTarget : this,
+    /** @type {Document} */$doc=$w.document,
+    /** @type {HTMLBodyElement} */ $body=$doc.body
 
-const HASTOUCHEVENTS = typeof $w.ontouchstart!=='undefined'
+const /** @type {boolean} */ HASTOUCHEVENTS = typeof $w.ontouchstart!=='undefined'
 
-const EVENTDRAGMOVE = HASTOUCHEVENTS ? 'touchmove' : 'mousemove',
-    EVENTDRAGEND = HASTOUCHEVENTS ? 'touchend' : 'mouseup',
-    EVENTDRAGSTART = HASTOUCHEVENTS ? 'touchstart' : 'mousedown'
+const /** @type {string} */ EVENTDRAGMOVE = HASTOUCHEVENTS ? 'touchmove' : 'mousemove',
+    /** @type {string} */ EVENTDRAGEND = HASTOUCHEVENTS ? 'touchend' : 'mouseup',
+    /** @type {string} */ EVENTDRAGSTART = HASTOUCHEVENTS ? 'touchstart' : 'mousedown'
 
-let $controls=$doc.getElementById('controls'),
-    $cssOutput=$doc.getElementById('css-output')
+let /** @type {Element} */ $controls=$doc.getElementById('controls'),
+    /** @type {Element} */ $cssOutput=$doc.getElementById('css-output')
 
-let $controlsDragTrigger=$controls.getElementsByTagName('header')[0]
-let $controlsList=$controls.getElementsByTagName('ul')[0]
-let $controlTogglePanel=$controls.getElementsByClassName('toggle-dropdown')[0]
-let $controlToggleAnimation=$doc.getElementById('toggle-animation')
+let /** @type {Element} */ $controlsDragTrigger=$controls.getElementsByTagName('header')[0]
+let /** @type {Element} */ $controlsList=$controls.getElementsByTagName('ul')[0]
+let /** @type {Element} */ $controlTogglePanel=$controls.getElementsByClassName('toggle-dropdown')[0]
+let /** @type {Element} */ $controlToggleAnimation=$doc.getElementById('toggle-animation')
 
-let $controlsResetCanvas=$doc.getElementById('reset-canvas')
+let /** @type {Element} */ $controlsResetCanvas=$doc.getElementById('reset-canvas')
 
-let $coordOutput=$doc.getElementById('output-coords'),
-    outputMsgNotDragging=$coordOutput.innerHTML
+let /** @type {Element} */ $coordOutput=$doc.getElementById('output-coords'),
+    /** @type {string} */ outputMsgNotDragging=$coordOutput.innerHTML
 
-let isWindowActive=true
+let /** @type {boolean} */ isWindowActive=true
 
+/**
+ * Marks the variable isWindowActive as false when the window loses focus
+ */
 let handleWindowBlur=function(){
     isWindowActive=false
 }
 $w.addEventListener('blur', handleWindowBlur)
 
+/**
+ * Marks the variable isWindowActive as true when the window gains focus
+ */
 let handleWindowFocus=function(){
     isWindowActive=true
 }
@@ -51,12 +57,12 @@ let controlPos=(function(o){return [o.left,o.top]})($controls.getBoundingClientR
 
 /**
  * Rounds number to a specified number of decimal places
- * @param {Number} number number to round
- * @param {Number} [dp=2] number of decimal places to round to
+ * @param {number} number number to round
+ * @param {number} [dp=2] number of decimal places to round to
  * @returns 
  */
 let roundToDecimal=function(number,dp=2){
-    return parseInt(number*(10**dp))/(10**dp)
+    return Math.round(number*(10**dp))/(10**dp)
 }
 
 /**
@@ -75,8 +81,8 @@ let copyArrayTo=function(destination, src){
  */
 
 let extractCoordsFromEvent=function(e){
-    if(HASTOUCHEVENTS) {
-        const { touches, changedTouches } = e.originalEvent ?? e
+    if(HASTOUCHEVENTS){
+        const {touches, changedTouches} = e.originalEvent ?? e
         const touch = touches[0] ?? changedTouches[0]
         return [touch.clientX,touch.clientY]
     }else{
@@ -86,8 +92,8 @@ let extractCoordsFromEvent=function(e){
 /**
  * Moves coords [x,y] within the range 0<=x<=horizontalMax, 0<=y<=verticalMax
  * @param {Array} coords Array of two numbers representing coordinates
- * @param {Number} horizontalMax 
- * @param {Number} verticalMax 
+ * @param {number} horizontalMax 
+ * @param {number} verticalMax 
  * @returns {Array} Array of coordinates
  */
 let moveCoordsWithinWindow=function(coords, horizontalMax, verticalMax){
@@ -115,19 +121,28 @@ let moveCoordsWithinWindow=function(coords, horizontalMax, verticalMax){
  * @param {Function} dragEnd Function that runs on drag end
  */
 let setUpDragListeners=function($elem, dragStart, dragMove, dragEnd){
+    /**
+     * Wrapper for dragStart listener
+     * @param {Event} e 
+     */
     let dragStartListener=function(e){
-        e=e||$w.event
         e.preventDefault()
         dragStart.call(this,extractCoordsFromEvent(e),e)
         $doc.addEventListener(EVENTDRAGMOVE, dragMoveListener)
         $doc.addEventListener(EVENTDRAGEND, dragEndListener)
         $w.addEventListener('blur', dragEndListener)
     }
+    /**
+     * Wrapper for dragMove listener
+     * @param {Event} e 
+     */
     let dragMoveListener=function(e){
-        e=e||$w.event
         e.preventDefault()
         dragMove.call(this, extractCoordsFromEvent(e),e)
     }
+    /**
+     * Wrapper for dragEnd listener
+     */
     let dragEndListener=function(){
         if(dragEnd){
             dragEnd.call(this)
@@ -212,24 +227,22 @@ $controlsResetCanvas.addEventListener('click', handleResetCanvas)
 
 
 
+
 // CANVAS STUFF
 
-let $canvas=$doc.getElementById('canvas')
-/**
- * @type {CanvasRenderingContext2D}
- */
-let ctx=$canvas.getContext('2d')
+let /** @type {Element} */ $canvas=$doc.getElementById('canvas')
+let /** @type {CanvasRenderingContext2D} */ ctx=$canvas.getContext('2d')
 
-let canvasDragPos=[0,0],
-    canvasDragVel=[0,0],
-    canvasDragTime=0,
-    canvasDragStopTimeout=0,
-    currentAnimationFrame, // stores requestAnimationFrame output for cancelling
-    canvasWidth,
-    canvasHeight,
-    animTick=0,
-    canvasTime=0,
-    timeSinceLastFrame=0
+let /** @type {!Array} */ canvasDragPos=[0,0],
+    /** @type {!Array} */ canvasDragVel=[0,0],
+    /** @type {number} */ canvasDragTime=0,
+    /** @type {number} */ canvasDragStopTimeout=0,
+    /** @type {number} */ currentAnimationFrame, // stores requestAnimationFrame output for cancelling
+    /** @type {number} */ canvasWidth,
+    /** @type {number} */ canvasHeight,
+    /** @type {number} */ animTick=0,
+    /** @type {number} */ canvasTime=0,
+    /** @type {number} */ timeSinceLastFrame=0
 
 /**
  * Makes sure canvas width and height continue to fill up Window when resizing
@@ -249,56 +262,68 @@ $w.addEventListener('resize', handleResize)
  * Adds two arrays termwise
  * @param {Array} a 
  * @param {Array} b 
- * @returns {Array} Result is the same size as a (and should be the same size as b, but isn't checked)
+ * @returns {!Array} Result is the same size as a (and should be the same size as b, but isn't checked)
  */
 let vectorAdd=(a,b) => a.map((x,i) => x+b[i])
 /**
  * Subtracts two arrays termwise
  * @param {Array} a 
  * @param {Array} b 
- * @returns {Array} Result is the same size as a (and should be the same size as b, but isn't checked)
+ * @returns {!Array} Result is the same size as a (and should be the same size as b, but isn't checked)
  */
 let vectorSubtract=(a,b) => a.map((x,i) => x-b[i])
 /**
  * Multiplies array termwise by scalar
- * @param {Number} scalar 
+ * @param {number} scalar 
  * @param {Array} vector 
- * @returns {Array} same size as vector, with each term multiplied by scalar
+ * @returns {!Array} same size as vector, with each term multiplied by scalar
  */
 let scalarMult=(scalar, vector) => vector.map(x => scalar * x)
 /**
  * Sum of termwise squares of array
  * @param {Array} vector 
- * @returns {Number}
+ * @returns {!number}
  */
 let normSquared=(vector)=>vector.reduce((sumSoFar, x)=>(sumSoFar + x*x),0)
 
-const BOBCLICKAREASCALEFACTOR = HASTOUCHEVENTS ? 4 : 1,
-    MAXDRAGVEL=8
+const /** @type {number} */ BOBCLICKAREASCALEFACTOR = HASTOUCHEVENTS ? 4 : 1,
+    /** @type {number} */ MAXDRAGVEL=4
 
-let L0=1, g=9.81, kOverM=3, pxPerMeter=100, linearDragCoeff=0.1
+let /** @type {number} */ L0=1,
+    /** @type {number} */ g=9.81,
+    /** @type {number} */ kOverM=3,
+    /** @type {number} */ pxPerMeter=100,
+    /** @type {number} */ linearDragCoeff=0.1
 
-let pivotCoords=[canvasWidth/(pxPerMeter*2), canvasHeight/(pxPerMeter*6)],
-    pendulumCoords=vectorAdd(pivotCoords,[0,100/pxPerMeter]),
-    pendulumBobRadius=0.15,
-    pivotRadius=0.15,
-    currentlyDraggingBob=false,
-    currentPhaseSpaceCoords=[g/kOverM,0.1,0,0]
+let /** @type {!Array} */ pivotCoords=[canvasWidth/(pxPerMeter*2), canvasHeight/(pxPerMeter*6)],
+    /** @type {!Array} */ pendulumCoords=vectorAdd(pivotCoords,[0,100/pxPerMeter]),
+    /** @type {number} */ pendulumBobRadius=0.15,
+    /** @type {number} */ pivotRadius=0.15,
+    /** @type {boolean} */ currentlyDraggingBob=false,
+    /** @type {!Array} */ currentPhaseSpaceCoords=[g/kOverM,0.1,0,0]
 
 //let sigmoid = (x, max=1, slope=1)=>Math.tanh(x*slope/max)*max
 
+/**
+ * Converts pixel left and top offsets to physical polar coodinates 
+ * @param {number} left Left offset in pixels
+ * @param {number} top Top offset in pixels
+ * @param {number} [leftVel=0] Time derivative of left offset
+ * @param {number} [topVel=0] Time derivative of top offset
+ * @returns {Array}
+ */
 let pendulumCoordsToPhaseSpace=function(left,top, leftVel=0, topVel=0){
-    let diff=vectorSubtract([left,top], pivotCoords),
-        magnitude=Math.sqrt(normSquared(diff)),
-        x=magnitude-L0,
-        theta=Math.atan2(diff[0],diff[1]),
-        xPrime=0,
-        thetaPrime=0
+    let /** @type {Array} */ diff=vectorSubtract([left,top], pivotCoords),
+        /** @type {number} */ magnitude=Math.sqrt(normSquared(diff)),
+        /** @type {number} */ x=magnitude-L0,
+        /** @type {number} */ theta=Math.atan2(diff[0],diff[1]),
+        /** @type {number} */ xPrime=0,
+        /** @type {number} */ thetaPrime=0
 
     if((leftVel || topVel) && magnitude>0){
-        let velNormSquared=leftVel*leftVel + topVel*topVel
+        let /** @type {number} */ velNormSquared=leftVel*leftVel + topVel*topVel
         if(velNormSquared > MAXDRAGVEL*MAXDRAGVEL){
-            let factor=MAXDRAGVEL*(velNormSquared**-0.5)
+            let /** @type {number} */ factor=MAXDRAGVEL*(velNormSquared**-0.5)
             leftVel*= factor
             topVel*=factor
         }
@@ -308,21 +333,29 @@ let pendulumCoordsToPhaseSpace=function(left,top, leftVel=0, topVel=0){
     return [x, theta, xPrime, thetaPrime]
 }
 
+/**
+ * Converts physical polar coodinates to pixel left and top offsets
+ * @param {number} x 
+ * @param {number} theta 
+ * @param {number} xPrime 
+ * @param {number} thetaPrime 
+ * @returns {Array}
+ */
 let phaseSpaceToPendulumCoords=function(x, theta, xPrime, thetaPrime){
-    let L=L0+x
+    let /** @type {number} */ L=L0+x
     return vectorAdd(pivotCoords,scalarMult(L,[Math.sin(theta),Math.cos(theta)]))
 }
 
 /**
  * Calculates the (termwise) derivatives of the array [x, theta, xPrime, thetaPrime]
- * @param {Number} x deviation from rest length
- * @param {Number} theta angle with vertical in radians (down is zero, right is positive)
- * @param {Number} xPrime Time derivataive of x
- * @param {Number} thetaPrime Time derivative of theta
- * @returns 
+ * @param {number} x deviation from rest length
+ * @param {number} theta angle with vertical in radians (down is zero, right is positive)
+ * @param {number} xPrime Time derivataive of x
+ * @param {number} thetaPrime Time derivative of theta
+ * @returns {Array}
  */
 let pendulumFunction=function(x, theta, xPrime, thetaPrime){
-    let l=L0+x
+    let /** @type {number} */ l=L0+x
         //lthetaPrime2=l*thetaPrime*thetaPrime,
         //v2=xPrime*xPrime+l*lthetaPrime2
     return [
@@ -335,20 +368,20 @@ let pendulumFunction=function(x, theta, xPrime, thetaPrime){
 /**
  * Uses order-4 Runge-Kutta to compute future coords cuz I'm lazy
  * @param {Array} curr Array of current polar coordinates and their derivatives wrt time
- * @param {Number} h Timestep
+ * @param {number} h Timestep
  * @returns {Array}
  */
 let nextStepRK4=function(curr,h){
-    let k1=pendulumFunction(...curr),
-        k2=pendulumFunction(...vectorAdd(curr,scalarMult(h/2,k1))),
-        k3=pendulumFunction(...vectorAdd(curr,scalarMult(h/2,k2))),
-        k4=pendulumFunction(...vectorAdd(curr,scalarMult(h,k3)))
+    let /** @type {Array} */ k1=pendulumFunction(...curr),
+        /** @type {Array} */ k2=pendulumFunction(...vectorAdd(curr,scalarMult(h/2,k1))),
+        /** @type {Array} */ k3=pendulumFunction(...vectorAdd(curr,scalarMult(h/2,k2))),
+        /** @type {Array} */ k4=pendulumFunction(...vectorAdd(curr,scalarMult(h,k3)))
     return vectorAdd(curr,vectorAdd(scalarMult(h/6,vectorAdd(k1,k4)),scalarMult(h/3,vectorAdd(k2,k3))))
 }
 
 /**
  * Renders one frame of the canvas
- * @param {Number} timeStamp Timeline's current time in ms, passed as parameter by requestAnimationFrame
+ * @param {number} timeStamp Timeline's current time in ms, passed as parameter by requestAnimationFrame
  */
 let animate=function(timeStamp){
     clearCanvas()
@@ -363,7 +396,7 @@ let animate=function(timeStamp){
         copyArrayTo(pendulumCoords,canvasDragPos)
     }else{
         // compute next step using nextStepRK4
-        currentPhaseSpaceCoords=nextStepRK4(currentPhaseSpaceCoords,timeSinceLastFrame*1e-3)
+        copyArrayTo(currentPhaseSpaceCoords,nextStepRK4(currentPhaseSpaceCoords,timeSinceLastFrame*1e-3))
         //collision detection
         if(currentPhaseSpaceCoords[0]+L0<pendulumBobRadius+pivotRadius){
             currentPhaseSpaceCoords[0]=pivotRadius+pendulumBobRadius-L0
@@ -404,14 +437,14 @@ let animate=function(timeStamp){
 setUpDragListeners($canvas, function(coords){
     copyArrayTo(canvasDragPos,scalarMult(1/pxPerMeter,coords))
     canvasDragTime=$doc.timeline.currentTime
-    if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=BOBCLICKAREASCALEFACTOR*(pendulumBobRadius**2)){ // factor makes it easier to drag on mobile
+    if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=BOBCLICKAREASCALEFACTOR*(pendulumBobRadius**2)){ // factor makes it easier to select on mobile by making the "hitbox" larger
         currentlyDraggingBob=true
     }
 
     $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
 },function(coords){
-    let posNew=scalarMult(1/pxPerMeter,coords),
-        timeDiff=$doc.timeline.currentTime-canvasDragTime
+    let /** @type {Array} */ posNew=scalarMult(1/pxPerMeter,coords),
+        /** @type {number} */ timeDiff=$doc.timeline.currentTime-canvasDragTime
     canvasDragTime+=timeDiff
     if(timeDiff>0){
         copyArrayTo(canvasDragVel, scalarMult(1e3/timeDiff,vectorSubtract(posNew, canvasDragPos)))
