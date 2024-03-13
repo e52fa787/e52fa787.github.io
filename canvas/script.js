@@ -1,3 +1,5 @@
+/*jslint browser */
+/*global process */
 ;(typeof window!=='undefined'?window:this).addEventListener('load',function(globalLoadEvent){'use strict';
 
 const /** @type {Window} */ $w=globalLoadEvent ? globalLoadEvent.currentTarget : this,
@@ -453,7 +455,6 @@ setUpDragListeners($canvas, function(coords){
         copyArrayTo(canvasDragVel, scalarMult(1e3/timeDiff,vectorSubtract(posNew, canvasDragPos)))
     }
     copyArrayTo(canvasDragPos,posNew)
-    
     clearTimeout(canvasDragStopTimeout)
     canvasDragStopTimeout=setTimeout(function(){
         copyArrayTo(canvasDragVel,[0,0])
