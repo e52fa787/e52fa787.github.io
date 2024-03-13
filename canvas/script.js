@@ -4,11 +4,11 @@ const /** @type {Window} */ $w=globalLoadEvent ? globalLoadEvent.currentTarget :
     /** @type {Document} */$doc=$w.document,
     /** @type {HTMLBodyElement} */ $body=$doc.body
 
-const /** @type {boolean} */ HASTOUCHEVENTS = typeof $w.ontouchstart!=='undefined'
+const /** @type {!boolean} */ HASTOUCHEVENTS = typeof $w.ontouchstart!=='undefined'
 
-const /** @type {string} */ EVENTDRAGMOVE = HASTOUCHEVENTS ? 'touchmove' : 'mousemove',
-    /** @type {string} */ EVENTDRAGEND = HASTOUCHEVENTS ? 'touchend' : 'mouseup',
-    /** @type {string} */ EVENTDRAGSTART = HASTOUCHEVENTS ? 'touchstart' : 'mousedown'
+const /** @type {!string} */ EVENTDRAGMOVE = HASTOUCHEVENTS ? 'touchmove' : 'mousemove',
+    /** @type {!string} */ EVENTDRAGEND = HASTOUCHEVENTS ? 'touchend' : 'mouseup',
+    /** @type {!string} */ EVENTDRAGSTART = HASTOUCHEVENTS ? 'touchstart' : 'mousedown'
 
 let /** @type {Element} */ $controls=$doc.getElementById('controls'),
     /** @type {Element} */ $cssOutput=$doc.getElementById('css-output')
@@ -23,7 +23,7 @@ let /** @type {Element} */ $controlsResetCanvas=$doc.getElementById('reset-canva
 let /** @type {Element} */ $coordOutput=$doc.getElementById('output-coords'),
     /** @type {string} */ outputMsgNotDragging=$coordOutput.innerHTML
 
-let /** @type {boolean} */ isWindowActive=true
+let /** @type {!boolean} */ isWindowActive=true
 
 /**
  * Marks the variable isWindowActive as false when the window loses focus
@@ -43,32 +43,32 @@ $w.addEventListener('focus', handleWindowFocus)
 
 /**
  * Tracks previous mouse position when dragging over $controls
- * @type {Array}
+ * @type {!Array}
  */
 let controlsDragPos=[0,0]
 /**
  * Tracks coordinates of the control panel itself (which can't leave the window)
  * Initial values are the computed .left and .top values of $controls
- * @type {Array}
+ * @type {!Array}
  */
-let controlPos=(function(o){return [o.left,o.top]})($controls.getBoundingClientRect())
+let controlPos=((o)=>[o.left,o.top])($controls.getBoundingClientRect())
 
 // CONTROL PANEL
 
 /**
  * Rounds number to a specified number of decimal places
- * @param {number} number number to round
+ * @param {!number} number number to round
  * @param {number} [dp=2] number of decimal places to round to
- * @returns 
+ * @returns {!number}
  */
 let roundToDecimal=function(number,dp=2){
     return Math.round(number*(10**dp))/(10**dp)
 }
 
 /**
- * Copies the values of src to destination without changing the reference of desination
- * @param {Array} destination 
- * @param {Array} src 
+ * Copies the values of src to destination without changing the reference of destination
+ * @param {!Array} destination 
+ * @param {!Array} src 
  */
 let copyArrayTo=function(destination, src){
     destination.splice(0,destination.length,...src)
@@ -76,8 +76,8 @@ let copyArrayTo=function(destination, src){
 
 /**
  * Extracts [x,y] coordinates from a touch/mouse event
- * @param {Event} e 
- * @returns {Array} Array of two coordinates contained in the event
+ * @param {!Event} e 
+ * @returns {!Array} Array of two coordinates contained in the event
  */
 
 let extractCoordsFromEvent=function(e){
@@ -91,13 +91,13 @@ let extractCoordsFromEvent=function(e){
 }
 /**
  * Moves coords [x,y] within the range 0<=x<=horizontalMax, 0<=y<=verticalMax
- * @param {Array} coords Array of two numbers representing coordinates
- * @param {number} horizontalMax 
- * @param {number} verticalMax 
- * @returns {Array} Array of coordinates
+ * @param {!Array} coords Array of two numbers representing coordinates
+ * @param {!number} horizontalMax 
+ * @param {!number} verticalMax 
+ * @returns {!Array} Array of coordinates
  */
 let moveCoordsWithinWindow=function(coords, horizontalMax, verticalMax){
-    let [left,top]=coords
+    let [/** @type {!number} */ left, /** @type {!number} */ top]=coords
     if(left<0){
         left=0
     }else if(left>horizontalMax){
@@ -116,14 +116,14 @@ let moveCoordsWithinWindow=function(coords, horizontalMax, verticalMax){
 /**
  * Attaches and removes event listeners for draggable objects and calculates mouse coordinates
  * @param {Element} $elem Element to attach the drag start listener to
- * @param {Function} dragStart Function that runs on drag start
- * @param {Function} dragMove Function that runs on drag move
- * @param {Function} dragEnd Function that runs on drag end
+ * @param {!Function} dragStart Function that runs on drag start
+ * @param {!Function} dragMove Function that runs on drag move
+ * @param {!Function} dragEnd Function that runs on drag end
  */
 let setUpDragListeners=function($elem, dragStart, dragMove, dragEnd){
     /**
      * Wrapper for dragStart listener
-     * @param {Event} e 
+     * @param {!Event} e 
      */
     let dragStartListener=function(e){
         e.preventDefault()
@@ -134,7 +134,7 @@ let setUpDragListeners=function($elem, dragStart, dragMove, dragEnd){
     }
     /**
      * Wrapper for dragMove listener
-     * @param {Event} e 
+     * @param {!Event} e 
      */
     let dragMoveListener=function(e){
         e.preventDefault()
@@ -238,11 +238,11 @@ let /** @type {!Array} */ canvasDragPos=[0,0],
     /** @type {number} */ canvasDragTime=0,
     /** @type {number} */ canvasDragStopTimeout=0,
     /** @type {number} */ currentAnimationFrame, // stores requestAnimationFrame output for cancelling
-    /** @type {number} */ canvasWidth,
-    /** @type {number} */ canvasHeight,
-    /** @type {number} */ animTick=0,
-    /** @type {number} */ canvasTime=0,
-    /** @type {number} */ timeSinceLastFrame=0
+    /** @type {!number} */ canvasWidth=0,
+    /** @type {!number} */ canvasHeight=0,
+    /** @type {!number} */ animTick=0,
+    /** @type {!number} */ canvasTime=0,
+    /** @type {!number} */ timeSinceLastFrame=0
 
 /**
  * Makes sure canvas width and height continue to fill up Window when resizing
@@ -260,70 +260,70 @@ $w.addEventListener('resize', handleResize)
 
 /**
  * Adds two arrays termwise
- * @param {Array} a 
- * @param {Array} b 
+ * @param {!Array} a 
+ * @param {!Array} b 
  * @returns {!Array} Result is the same size as a (and should be the same size as b, but isn't checked)
  */
 let vectorAdd=(a,b) => a.map((x,i) => x+b[i])
 /**
  * Subtracts two arrays termwise
- * @param {Array} a 
- * @param {Array} b 
+ * @param {!Array} a 
+ * @param {!Array} b 
  * @returns {!Array} Result is the same size as a (and should be the same size as b, but isn't checked)
  */
 let vectorSubtract=(a,b) => a.map((x,i) => x-b[i])
 /**
  * Multiplies array termwise by scalar
- * @param {number} scalar 
- * @param {Array} vector 
+ * @param {!number} scalar 
+ * @param {!Array} vector 
  * @returns {!Array} same size as vector, with each term multiplied by scalar
  */
 let scalarMult=(scalar, vector) => vector.map(x => scalar * x)
 /**
  * Sum of termwise squares of array
- * @param {Array} vector 
+ * @param {!Array} vector 
  * @returns {!number}
  */
 let normSquared=(vector)=>vector.reduce((sumSoFar, x)=>(sumSoFar + x*x),0)
 
-const /** @type {number} */ BOBCLICKAREASCALEFACTOR = HASTOUCHEVENTS ? 4 : 1,
-    /** @type {number} */ MAXDRAGVEL=4
+const /** @type {!number} */ BOBCLICKAREASCALEFACTOR = HASTOUCHEVENTS ? 4 : 1,
+    /** @type {!number} */ MAXDRAGVEL=4
 
-let /** @type {number} */ L0=1,
-    /** @type {number} */ g=9.81,
-    /** @type {number} */ kOverM=3,
-    /** @type {number} */ pxPerMeter=100,
-    /** @type {number} */ linearDragCoeff=0.1
+let /** @type {!number} */ L0=1,
+    /** @type {!number} */ g=9.81,
+    /** @type {!number} */ kOverM=3,
+    /** @type {!number} */ pxPerMeter=100,
+    /** @type {!number} */ linearDragCoeff=0.1
 
 let /** @type {!Array} */ pivotCoords=[canvasWidth/(pxPerMeter*2), canvasHeight/(pxPerMeter*6)],
     /** @type {!Array} */ pendulumCoords=vectorAdd(pivotCoords,[0,100/pxPerMeter]),
-    /** @type {number} */ pendulumBobRadius=0.15,
-    /** @type {number} */ pivotRadius=0.15,
-    /** @type {boolean} */ currentlyDraggingBob=false,
+    /** @type {!number} */ pendulumBobRadius=0.15,
+    /** @type {!number} */ pivotRadius=0.15,
+    /** @type {!boolean} */ currentlyDraggingBob=false,
     /** @type {!Array} */ currentPhaseSpaceCoords=[g/kOverM,0.1,0,0]
 
 //let sigmoid = (x, max=1, slope=1)=>Math.tanh(x*slope/max)*max
 
 /**
  * Converts pixel left and top offsets to physical polar coodinates 
- * @param {number} left Left offset in pixels
- * @param {number} top Top offset in pixels
+ * @param {!number} left Left offset in pixels
+ * @param {!number} top Top offset in pixels
  * @param {number} [leftVel=0] Time derivative of left offset
  * @param {number} [topVel=0] Time derivative of top offset
- * @returns {Array}
+ * @returns {!Array}
  */
 let pendulumCoordsToPhaseSpace=function(left,top, leftVel=0, topVel=0){
-    let /** @type {Array} */ diff=vectorSubtract([left,top], pivotCoords),
-        /** @type {number} */ magnitude=Math.sqrt(normSquared(diff)),
-        /** @type {number} */ x=magnitude-L0,
-        /** @type {number} */ theta=Math.atan2(diff[0],diff[1]),
-        /** @type {number} */ xPrime=0,
-        /** @type {number} */ thetaPrime=0
+    let /** @type {!Array} */ diff=vectorSubtract([left,top], pivotCoords),
+        /** @type {!number} */ magnitude=Math.sqrt(normSquared(diff)),
+        /** @type {!number} */ x=magnitude-L0,
+        /** @type {!number} */ theta=Math.atan2(diff[0],diff[1]),
+        /** @type {!number} */ xPrime=0,
+        /** @type {!number} */ thetaPrime=0
 
     if((leftVel || topVel) && magnitude>0){
-        let /** @type {number} */ velNormSquared=leftVel*leftVel + topVel*topVel
+        let /** @type {!number} */ velNormSquared=leftVel*leftVel + topVel*topVel
         if(velNormSquared > MAXDRAGVEL*MAXDRAGVEL){
-            let /** @type {number} */ factor=MAXDRAGVEL*(velNormSquared**-0.5)
+            let /** @type {!number} */ factor=MAXDRAGVEL*(velNormSquared**-0.5)
             leftVel*= factor
             topVel*=factor
         }
@@ -335,27 +335,27 @@ let pendulumCoordsToPhaseSpace=function(left,top, leftVel=0, topVel=0){
 
 /**
  * Converts physical polar coodinates to pixel left and top offsets
- * @param {number} x 
- * @param {number} theta 
- * @param {number} xPrime 
- * @param {number} thetaPrime 
- * @returns {Array}
+ * @param {!number} x 
+ * @param {!number} theta 
+ * @param {!number} xPrime 
+ * @param {!number} thetaPrime 
+ * @returns {!Array}
  */
 let phaseSpaceToPendulumCoords=function(x, theta, xPrime, thetaPrime){
-    let /** @type {number} */ L=L0+x
+    let /** @type {!number} */ L=L0+x
     return vectorAdd(pivotCoords,scalarMult(L,[Math.sin(theta),Math.cos(theta)]))
 }
 
 /**
  * Calculates the (termwise) derivatives of the array [x, theta, xPrime, thetaPrime]
- * @param {number} x deviation from rest length
- * @param {number} theta angle with vertical in radians (down is zero, right is positive)
- * @param {number} xPrime Time derivataive of x
- * @param {number} thetaPrime Time derivative of theta
- * @returns {Array}
+ * @param {!number} x deviation from rest length
+ * @param {!number} theta angle with vertical in radians (down is zero, right is positive)
+ * @param {!number} xPrime Time derivataive of x
+ * @param {!number} thetaPrime Time derivative of theta
+ * @returns {!Array}
  */
 let pendulumFunction=function(x, theta, xPrime, thetaPrime){
-    let /** @type {number} */ l=L0+x
+    let /** @type {!number} */ l=L0+x
         //lthetaPrime2=l*thetaPrime*thetaPrime,
         //v2=xPrime*xPrime+l*lthetaPrime2
     return [
@@ -367,28 +367,29 @@ let pendulumFunction=function(x, theta, xPrime, thetaPrime){
 
 /**
  * Uses order-4 Runge-Kutta to compute future coords cuz I'm lazy
- * @param {Array} curr Array of current polar coordinates and their derivatives wrt time
- * @param {number} h Timestep
- * @returns {Array}
+ * @param {!Array} curr Array of current polar coordinates and their derivatives wrt time
+ * @param {!number} h Timestep
+ * @returns {!Array}
  */
 let nextStepRK4=function(curr,h){
-    let /** @type {Array} */ k1=pendulumFunction(...curr),
-        /** @type {Array} */ k2=pendulumFunction(...vectorAdd(curr,scalarMult(h/2,k1))),
-        /** @type {Array} */ k3=pendulumFunction(...vectorAdd(curr,scalarMult(h/2,k2))),
-        /** @type {Array} */ k4=pendulumFunction(...vectorAdd(curr,scalarMult(h,k3)))
+    let /** @type {!Array} */ k1=pendulumFunction(...curr),
+        /** @type {!Array} */ k2=pendulumFunction(...vectorAdd(curr,scalarMult(h/2,k1))),
+        /** @type {!Array} */ k3=pendulumFunction(...vectorAdd(curr,scalarMult(h/2,k2))),
+        /** @type {!Array} */ k4=pendulumFunction(...vectorAdd(curr,scalarMult(h,k3)))
     return vectorAdd(curr,vectorAdd(scalarMult(h/6,vectorAdd(k1,k4)),scalarMult(h/3,vectorAdd(k2,k3))))
 }
 
 /**
  * Renders one frame of the canvas
- * @param {number} timeStamp Timeline's current time in ms, passed as parameter by requestAnimationFrame
+ * @param {number|null} [timeStamp=$doc.timeline.currentTime] Timeline's current time in ms, passed as parameter by requestAnimationFrame
  */
-let animate=function(timeStamp){
+let animate=function(timeStamp=$doc.timeline.currentTime){
     clearCanvas()
     animTick++
-    timeStamp = timeStamp || $doc.timeline.currentTime
     timeSinceLastFrame = Math.min(timeStamp - canvasTime, 30)
-    canvasTime = timeStamp
+    if(timeStamp){
+        canvasTime = timeStamp
+    }else console.error('document.timeline.currentTime undefined') // should never reach here unless both timeStamp and $doc.timeline.currentTime are null
 
 
     if(currentlyDraggingBob){
@@ -436,15 +437,17 @@ let animate=function(timeStamp){
  */
 setUpDragListeners($canvas, function(coords){
     copyArrayTo(canvasDragPos,scalarMult(1/pxPerMeter,coords))
-    canvasDragTime=$doc.timeline.currentTime
+    if($doc.timeline.currentTime){
+        canvasDragTime=$doc.timeline.currentTime
+    }else console.error('document.timeline.currentTime undefined') // should never reach here unless $doc.timeline.currentTime is null
     if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=BOBCLICKAREASCALEFACTOR*(pendulumBobRadius**2)){ // factor makes it easier to select on mobile by making the "hitbox" larger
         currentlyDraggingBob=true
     }
 
     $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
 },function(coords){
-    let /** @type {Array} */ posNew=scalarMult(1/pxPerMeter,coords),
-        /** @type {number} */ timeDiff=$doc.timeline.currentTime-canvasDragTime
+    let /** @type {!Array} */ posNew=scalarMult(1/pxPerMeter,coords),
+        /** @type {!number} */ timeDiff=$doc.timeline.currentTime-canvasDragTime
     canvasDragTime+=timeDiff
     if(timeDiff>0){
         copyArrayTo(canvasDragVel, scalarMult(1e3/timeDiff,vectorSubtract(posNew, canvasDragPos)))
