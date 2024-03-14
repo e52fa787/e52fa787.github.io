@@ -1,59 +1,95 @@
 /*jslint browser */
 /*global process */
-;(typeof window!=='undefined'?window:this).addEventListener('load',function(globalLoadEvent){'use strict';
+;(/** @param {Window} $w the global element (hopefully window) */($w)=>{'use strict';$w.addEventListener('load',()=>{
 
-const /** @type {Window} */ $w=globalLoadEvent ? globalLoadEvent.currentTarget : this,
-    /** @type {Document} */$doc=$w.document,
-    /** @type {HTMLBodyElement} */ $body=$doc.body
+const /** @type {Document} */$doc=$w.document,
+    /** @type {HTMLElement} */ $body=$doc.body
 
-const /** @type {!boolean} */ HASTOUCHEVENTS = typeof $w.ontouchstart!=='undefined'
+const /** @type {!string} */ EVENTDRAGMOVE = 'touchmove mousemove',
+    /** @type {!string} */ EVENTDRAGEND = 'touchend mouseup',
+    /** @type {!string} */ EVENTDRAGSTART = 'touchstart mousedown'
 
-const /** @type {!string} */ EVENTDRAGMOVE = HASTOUCHEVENTS ? 'touchmove' : 'mousemove',
-    /** @type {!string} */ EVENTDRAGEND = HASTOUCHEVENTS ? 'touchend' : 'mouseup',
-    /** @type {!string} */ EVENTDRAGSTART = HASTOUCHEVENTS ? 'touchstart' : 'mousedown'
+/**
+ * Gets element from id, and throws an error if it's not found
+ * @param {!string} id id of element
+ * @returns {!HTMLElement} element if found, else error
+ */
+const byId=(id)=>{
+    const e=$doc.getElementById(id)
+    if(!e){
+        throw new Error('Element #'+id+' not found')
+    }else{
+        return e
+    }
+}
+/**
+ * Adds or Removes Event Listeners from an element
+ * @param {Element | Document | Window} $elem Element to change event listeners of
+ * @param {string} evs Space-separated string of events
+ * @param {Function} listener Event listener callback
+ * @param {boolean} [addInsteadOfRemove=true] Whether to add or remove the element
+ */
+const changeEvListener=($elem, evs, listener, addInsteadOfRemove=true)=>{
+    for(let /** @type {!string} */ ev of evs.split(' ')){
+        if(addInsteadOfRemove){
+            $elem.addEventListener(ev, listener)
+        }else{
+            $elem.removeEventListener(ev, listener)
+        }
+    }
+}
+/**
+ * Returns the current time in ms using document.timeline.currentTime
+ * @returns {number} the current time in ms
+ */
+const currTime=()=>{
+    let t=$doc.timeline.currentTime
+    if('number'===typeof t){
+        return t
+    }else{
+        throw new Error('document.timeline.currentTime is not a number')
+    }
+}
 
-let /** @type {Element} */ $controls=$doc.getElementById('controls'),
-    /** @type {Element} */ $cssOutput=$doc.getElementById('css-output')
+const /** @type {Element} */ $controls=byId('controls'),
+    /** @type {Element} */ $cssOutput=byId('css-output'),
+    /** @type {Element} */ $controlsDragTrigger=$controls.getElementsByTagName('header')[0],
+    /** @type {Element} */ $controlsList=$controls.getElementsByTagName('ul')[0],
+    /** @type {Element} */ $controlTogglePanel=$controls.getElementsByClassName('toggle-dropdown')[0],
+    /** @type {Element} */ $controlToggleAnimation=byId('toggle-animation'),
+    /** @type {Element} */ $controlsResetCanvas=byId('reset-canvas'),
+    /** @type {Element} */ $coordOutput=byId('output-coords')
 
-let /** @type {Element} */ $controlsDragTrigger=$controls.getElementsByTagName('header')[0]
-let /** @type {Element} */ $controlsList=$controls.getElementsByTagName('ul')[0]
-let /** @type {Element} */ $controlTogglePanel=$controls.getElementsByClassName('toggle-dropdown')[0]
-let /** @type {Element} */ $controlToggleAnimation=$doc.getElementById('toggle-animation')
-
-let /** @type {Element} */ $controlsResetCanvas=$doc.getElementById('reset-canvas')
-
-let /** @type {Element} */ $coordOutput=$doc.getElementById('output-coords'),
-    /** @type {string} */ outputMsgNotDragging=$coordOutput.innerHTML
-
-let /** @type {!boolean} */ isWindowActive=true
+let /** @type {string} */ outputMsgNotDragging=$coordOutput.innerHTML,
+    /** @type {!boolean} */ isWindowActive=true
 
 /**
  * Marks the variable isWindowActive as false when the window loses focus
  */
-let handleWindowBlur=function(){
+const handleWindowBlur=()=>{
     isWindowActive=false
 }
-$w.addEventListener('blur', handleWindowBlur)
+changeEvListener($w, 'blur', handleWindowBlur)
 
 /**
  * Marks the variable isWindowActive as true when the window gains focus
  */
-let handleWindowFocus=function(){
+const handleWindowFocus=()=>{
     isWindowActive=true
 }
-$w.addEventListener('focus', handleWindowFocus)
+changeEvListener($w, 'focus', handleWindowFocus)
 
 /**
  * Tracks previous mouse position when dragging over $controls
  * @type {!Array}
  */
-let controlsDragPos=[0,0]
+const controlsDragPos=[0,0]
 /**
  * Tracks coordinates of the control panel itself (which can't leave the window)
  * Initial values are the computed .left and .top values of $controls
  * @type {!Array}
  */
-let controlPos=((o)=>[o.left,o.top])($controls.getBoundingClientRect())
+const controlPos=((o)=>[o.left,o.top])($controls.getBoundingClientRect())
 
 // CONTROL PANEL
 
@@ -63,7 +99,7 @@ let controlPos=((o)=>[o.left,o.top])($controls.getBoundingClientRect())
  * @param {number} [dp=2] number of decimal places to round to
  * @returns {!number}
  */
-let roundToDecimal=function(number,dp=2){
+const roundToDecimal=function(number,dp=2){
     return Math.round(number*(10**dp))/(10**dp)
 }
 
@@ -72,19 +108,19 @@ let roundToDecimal=function(number,dp=2){
  * @param {!Array} destination 
  * @param {!Array} src 
  */
-let copyArrayTo=function(destination, src){
+const copyArrayTo=function(destination, src){
     destination.splice(0,destination.length,...src)
 }
 
 /**
  * Extracts [x,y] coordinates from a touch/mouse event
- * @param {!Event} e 
+ * @param {MouseEvent|TouchEvent} e 
  * @returns {!Array} Array of two coordinates contained in the event
  */
 
-let extractCoordsFromEvent=function(e){
-    if(HASTOUCHEVENTS){
-        const {touches, changedTouches} = e.originalEvent ?? e
+const extractCoordsFromEvent=function(e){
+    if('touches' in e){
+        const {touches, changedTouches} = e
         const touch = touches[0] ?? changedTouches[0]
         return [touch.clientX,touch.clientY]
     }else{
@@ -98,7 +134,7 @@ let extractCoordsFromEvent=function(e){
  * @param {!number} verticalMax 
  * @returns {!Array} Array of coordinates
  */
-let moveCoordsWithinWindow=function(coords, horizontalMax, verticalMax){
+const moveCoordsWithinWindow=function(coords, horizontalMax, verticalMax){
     let [/** @type {!number} */ left, /** @type {!number} */ top]=coords
     if(left<0){
         left=0
@@ -122,21 +158,20 @@ let moveCoordsWithinWindow=function(coords, horizontalMax, verticalMax){
  * @param {!Function} dragMove Function that runs on drag move
  * @param {!Function} dragEnd Function that runs on drag end
  */
-let setUpDragListeners=function($elem, dragStart, dragMove, dragEnd){
+const setUpDragListeners=function($elem, dragStart, dragMove, dragEnd){
     /**
      * Wrapper for dragStart listener
-     * @param {!Event} e 
+     * @param {MouseEvent | TouchEvent} e 
      */
     let dragStartListener=function(e){
         e.preventDefault()
         dragStart.call(this,extractCoordsFromEvent(e),e)
-        $doc.addEventListener(EVENTDRAGMOVE, dragMoveListener)
-        $doc.addEventListener(EVENTDRAGEND, dragEndListener)
-        $w.addEventListener('blur', dragEndListener)
+        changeEvListener($doc, EVENTDRAGMOVE+' '+EVENTDRAGEND, dragMoveListener)
+        changeEvListener($w, 'blur', dragEndListener)
     }
     /**
      * Wrapper for dragMove listener
-     * @param {!Event} e 
+     * @param {MouseEvent | TouchEvent} e 
      */
     let dragMoveListener=function(e){
         e.preventDefault()
@@ -145,15 +180,14 @@ let setUpDragListeners=function($elem, dragStart, dragMove, dragEnd){
     /**
      * Wrapper for dragEnd listener
      */
-    let dragEndListener=function(){
+    let dragEndListener=()=>{
         if(dragEnd){
             dragEnd.call(this)
         }
-        $doc.removeEventListener(EVENTDRAGMOVE, dragMoveListener)
-        $doc.removeEventListener(EVENTDRAGEND, dragEndListener)
-        $w.removeEventListener('blur', dragEndListener)
+        changeEvListener($doc, EVENTDRAGMOVE+' '+EVENTDRAGEND, dragMoveListener)
+        changeEvListener($w, 'blur', dragEndListener, false)
     }
-    $elem.addEventListener(EVENTDRAGSTART, dragStartListener)
+    changeEvListener($elem, EVENTDRAGSTART, dragStartListener)
 }
 /**
  * Set up dragging for $controls
@@ -173,7 +207,7 @@ setUpDragListeners($controlsDragTrigger, function(coords){
     let [computedLeft, computedTop]=moveCoordsWithinWindow(controlPos,$body.clientWidth-$controls.clientWidth,$body.clientHeight-$controls.clientHeight)
 
     $controls.style.transform='translate('+computedLeft+'px,'+computedTop+'px)'
-},function(){
+},()=>{
     $controls.classList.remove('currentlyDragging')
     copyArrayTo(controlPos,moveCoordsWithinWindow(controlPos,$body.clientWidth-$controls.clientWidth,$body.clientHeight-$controls.clientHeight))
 })
@@ -181,17 +215,16 @@ setUpDragListeners($controlsDragTrigger, function(coords){
 /**
  * Toggles the closed/expanded state of the $controls
  */
-let handleControlPanelToggle=function(){
+let handleControlPanelToggle=()=>{
     $controls.classList.toggle('closed')
 }
-
-$controlTogglePanel.addEventListener('click', handleControlPanelToggle)
+changeEvListener($controlTogglePanel,'click', handleControlPanelToggle)
 
 /**
  * Updates the control panel's CSS height
  * Currently, each child of $controlList contributes 2em to its opened height
  */
-let updateControlsHeightCSS=function(){
+let updateControlsHeightCSS=()=>{
     $cssOutput.innerHTML="#controls>ul{max-height:"+($controlsList.childElementCount*2)+"em;}"
 }
 updateControlsHeightCSS()
@@ -200,56 +233,51 @@ updateControlsHeightCSS()
 /**
  * Pauses or unpauses animation
  */
-let handleAnimationToggle=function(){
+let handleAnimationToggle=()=>{
     if($controlToggleAnimation.checked){
         $w.requestAnimationFrame(animate)
     }else{
         $w.cancelAnimationFrame(currentAnimationFrame) // REDUNDANT WITH if($controlToggleAnimation.checked) in animate()
     }
 }
-
-$controlToggleAnimation.addEventListener('change',handleAnimationToggle)
-
+changeEvListener($controlToggleAnimation,'change',handleAnimationToggle)
 /**
  * Clears canvas
  */
-let clearCanvas=function(){
+let clearCanvas=()=>{
     ctx.clearRect(0,0,canvasWidth,canvasHeight)
 }
-//$controlsClearCanvas.addEventListener('click', clearCanvas)
 /**
  * Resets canvas
  */
-let handleResetCanvas=function(){
+let handleResetCanvas=()=>{
     animTick=0
     currentPhaseSpaceCoords=[g/kOverM,0,0,0]
     clearCanvas()
 }
-$controlsResetCanvas.addEventListener('click', handleResetCanvas)
-
-
+changeEvListener($controlsResetCanvas,'click', handleResetCanvas)
 
 
 // CANVAS STUFF
 
-let /** @type {Element} */ $canvas=$doc.getElementById('canvas')
+let /** @type {Element} */ $canvas=byId('canvas')
 let /** @type {CanvasRenderingContext2D} */ ctx=$canvas.getContext('2d')
 
 let /** @type {!Array} */ canvasDragPos=[0,0],
     /** @type {!Array} */ canvasDragVel=[0,0],
-    /** @type {number} */ canvasDragTime=0,
+    /** @type {number} */ canvasDragTime,
     /** @type {number} */ canvasDragStopTimeout=0,
     /** @type {number} */ currentAnimationFrame, // stores requestAnimationFrame output for cancelling
     /** @type {!number} */ canvasWidth=0,
     /** @type {!number} */ canvasHeight=0,
     /** @type {!number} */ animTick=0,
-    /** @type {!number} */ canvasTime=0,
+    /** @type {number} */ canvasTime,
     /** @type {!number} */ timeSinceLastFrame=0
 
 /**
  * Makes sure canvas width and height continue to fill up Window when resizing
  */
-let handleResize=function(){
+let handleResize=()=>{
     canvasWidth=$w.innerWidth
     canvasHeight=$w.innerHeight
 
@@ -258,7 +286,7 @@ let handleResize=function(){
 }
 
 handleResize()
-$w.addEventListener('resize', handleResize)
+changeEvListener($w, 'resize', handleResize)
 
 /**
  * Adds two arrays termwise
@@ -288,7 +316,7 @@ let scalarMult=(scalar, vector) => vector.map(x => scalar * x)
  */
 let normSquared=(vector)=>vector.reduce((sumSoFar, x)=>(sumSoFar + x*x),0)
 
-const /** @type {!number} */ BOBCLICKAREASCALEFACTOR = HASTOUCHEVENTS ? 4 : 1,
+const /** @type {!number} */ BOBCLICKAREASCALEFACTOR = 4,
     /** @type {!number} */ MAXDRAGVEL=4
 
 let /** @type {!number} */ L0=1,
@@ -383,17 +411,13 @@ let nextStepRK4=function(curr,h){
 
 /**
  * Renders one frame of the canvas
- * @param {number|null} [timeStamp=$doc.timeline.currentTime] Timeline's current time in ms, passed as parameter by requestAnimationFrame
+ * @param {number} [timeStamp=document.timeline.currentTime] Timeline's current time in ms, passed as parameter by requestAnimationFrame
  */
-let animate=function(timeStamp=$doc.timeline.currentTime){
+let animate=function(timeStamp=currTime()){
     clearCanvas()
     animTick++
+    canvasTime = timeStamp
     timeSinceLastFrame = Math.min(timeStamp - canvasTime, 30)
-    if(timeStamp){
-        canvasTime = timeStamp
-    }else console.error('document.timeline.currentTime undefined') // should never reach here unless both timeStamp and $doc.timeline.currentTime are null
-
-
     if(currentlyDraggingBob){
         // no physics calculations, just move the bob to the mouse
         copyArrayTo(pendulumCoords,canvasDragPos)
@@ -439,9 +463,7 @@ let animate=function(timeStamp=$doc.timeline.currentTime){
  */
 setUpDragListeners($canvas, function(coords){
     copyArrayTo(canvasDragPos,scalarMult(1/pxPerMeter,coords))
-    if($doc.timeline.currentTime){
-        canvasDragTime=$doc.timeline.currentTime
-    }else console.error('document.timeline.currentTime undefined') // should never reach here unless $doc.timeline.currentTime is null
+    canvasDragTime=currTime()
     if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=BOBCLICKAREASCALEFACTOR*(pendulumBobRadius**2)){ // factor makes it easier to select on mobile by making the "hitbox" larger
         currentlyDraggingBob=true
     }
@@ -449,19 +471,19 @@ setUpDragListeners($canvas, function(coords){
     $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
 },function(coords){
     let /** @type {!Array} */ posNew=scalarMult(1/pxPerMeter,coords),
-        /** @type {!number} */ timeDiff=$doc.timeline.currentTime-canvasDragTime
+        /** @type {!number} */ timeDiff=currTime()-canvasDragTime
     canvasDragTime+=timeDiff
     if(timeDiff>0){
         copyArrayTo(canvasDragVel, scalarMult(1e3/timeDiff,vectorSubtract(posNew, canvasDragPos)))
     }
     copyArrayTo(canvasDragPos,posNew)
     clearTimeout(canvasDragStopTimeout)
-    canvasDragStopTimeout=setTimeout(function(){
+    canvasDragStopTimeout=setTimeout(()=>{
         copyArrayTo(canvasDragVel,[0,0])
     }, 50)
 
     $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
-},function(){
+},()=>{
     // convert to polar coords
     if(currentlyDraggingBob){
         copyArrayTo(currentPhaseSpaceCoords, pendulumCoordsToPhaseSpace(...canvasDragPos, ...canvasDragVel))
@@ -470,4 +492,4 @@ setUpDragListeners($canvas, function(coords){
     }
 })
 
-})
+})})('undefined'!==typeof window?window:this)
