@@ -1,5 +1,4 @@
-;(/** @param {Window} $w The Window */($w)=>{'use strict';$w.addEventListener('load',()=>{
-
+;(/** @param {Window} $w Global window object */($w)=>{'use strict';$w.addEventListener('load',()=>{
 
 const /** @type {Document} */$doc=$w.document,
     /** @type {HTMLElement} */ $body=$doc.body
@@ -26,14 +25,14 @@ const byId=(id)=>{
  * @param {HTMLElement | Document | Window} $elem Element to change event listeners of
  * @param {string} evs Space-separated string of events
  * @param {EventListenerOrEventListenerObject} listener Event listener callback
- * @param {boolean} [addInsteadOfRemove=true] Whether to add or remove the element
+ * @param {boolean} [removeInstead=false] Whether to add or remove the element
  */
-const changeEvListener=($elem, evs, listener, addInsteadOfRemove=true)=>{
-    for(let /** @type {!string} */ ev of evs.split(' ')){
-        if(addInsteadOfRemove){
-            $elem.addEventListener(ev, listener)
-        }else{
+const changeEvListener=($elem, evs, listener, removeInstead)=>{
+    for(const /** @type {!string} */ ev of evs.split(' ')){
+        if(removeInstead){
             $elem.removeEventListener(ev, listener)
+        }else{
+            $elem.addEventListener(ev, listener)
         }
     }
 }
@@ -42,7 +41,7 @@ const changeEvListener=($elem, evs, listener, addInsteadOfRemove=true)=>{
  * @returns {number} the current time in ms
  */
 const currTime=()=>{
-    let t=$doc.timeline.currentTime
+    const t=$doc.timeline.currentTime
     if('number'===typeof t){
         return t
     }else{
@@ -54,8 +53,8 @@ const /** @type {HTMLElement} */ $controls=byId('controls'),
     /** @type {HTMLElement} */ $cssOutput=byId('css-output'),
     /** @type {HTMLElement} */ $controlsDragTrigger=$controls.getElementsByTagName('header')[0],
     /** @type {HTMLElement} */ $controlsList=$controls.getElementsByTagName('ul')[0],
-    /** @type {HTMLElement} */ $controlTogglePanel=$controls.getElementsByClassName('toggle-dropdown')[0],
-    /** @type {HTMLElement} */ $controlToggleAnimation=byId('toggle-animation'),
+    /** @type {HTMLElement} */ $controlTogglePanel=/** @type {HTMLElement} */($controls.getElementsByClassName('toggle-dropdown')[0]),
+    /** @type {HTMLInputElement} */ $controlToggleAnimation=/** @type {HTMLInputElement} */(byId('toggle-animation')),
     /** @type {HTMLElement} */ $controlsResetCanvas=byId('reset-canvas'),
     /** @type {HTMLElement} */ $coordOutput=byId('output-coords')
 
@@ -114,7 +113,7 @@ const copyArrayTo=function(destination, src){
 /**
  * Extracts [x,y] coordinates from a touch/mouse event
  * @param {MouseEvent | TouchEvent} e 
- * @returns {![number,number]} Array of two coordinates contained in the event
+ * @returns {![number, number]} Array of two coordinates contained in the event
  */
 
 const extractCoordsFromEvent=function(e){
@@ -160,31 +159,32 @@ const moveCoordsWithinWindow=function(coords, horizontalMax, verticalMax){
 const setUpDragListeners=function($elem, dragStart, dragMove, dragEnd){
     /**
      * Wrapper for dragStart listener
-     * @param {MouseEvent | TouchEvent} e 
+     * @param {Event} e Event for drag start
      */
-    let dragStartListener=function(e){
+    const dragStartListener=function(e){
         e.preventDefault()
-        dragStart.call(this,extractCoordsFromEvent(e),e)
-        changeEvListener($doc, EVENTDRAGMOVE+' '+EVENTDRAGEND, dragMoveListener)
+        dragStart.call(this,extractCoordsFromEvent(/** @type {MouseEvent | TouchEvent} */(e)),e)
+        changeEvListener($doc, EVENTDRAGMOVE, dragMoveListener)
+        changeEvListener($doc, EVENTDRAGEND, dragEndListener)
         changeEvListener($w, 'blur', dragEndListener)
     }
     /**
      * Wrapper for dragMove listener
-     * @param {MouseEvent | TouchEvent} e 
+     * @param {Event} e Event for drag move
      */
-    let dragMoveListener=function(e){
+    const dragMoveListener=function(e){
         e.preventDefault()
-        dragMove.call(this, extractCoordsFromEvent(e),e)
+        dragMove.call(this, extractCoordsFromEvent(/** @type {MouseEvent | TouchEvent} */(e)),e)
     }
     /**
      * Wrapper for dragEnd listener
      */
-    let dragEndListener=()=>{
+    const dragEndListener=()=>{
         if(dragEnd){
             dragEnd.call(this)
         }
-        changeEvListener($doc, EVENTDRAGMOVE+' '+EVENTDRAGEND, dragMoveListener)
-        changeEvListener($w, 'blur', dragEndListener, false)
+        changeEvListener($doc, EVENTDRAGMOVE+' '+EVENTDRAGEND, dragMoveListener, true)
+        changeEvListener($w, 'blur', dragEndListener, true)
     }
     changeEvListener($elem, EVENTDRAGSTART, dragStartListener)
 }
@@ -203,7 +203,7 @@ setUpDragListeners($controlsDragTrigger, function(coords){
     //store old positions
     copyArrayTo(controlsDragPos, coords)
 
-    let [computedLeft, computedTop]=moveCoordsWithinWindow(controlPos,$body.clientWidth-$controls.clientWidth,$body.clientHeight-$controls.clientHeight)
+    const [computedLeft, computedTop]=moveCoordsWithinWindow(controlPos,$body.clientWidth-$controls.clientWidth,$body.clientHeight-$controls.clientHeight)
 
     $controls.style.transform='translate('+computedLeft+'px,'+computedTop+'px)'
 },()=>{
@@ -214,7 +214,7 @@ setUpDragListeners($controlsDragTrigger, function(coords){
 /**
  * Toggles the closed/expanded state of the $controls
  */
-let handleControlPanelToggle=()=>{
+const handleControlPanelToggle=()=>{
     $controls.classList.toggle('closed')
 }
 changeEvListener($controlTogglePanel,'click', handleControlPanelToggle)
@@ -223,7 +223,7 @@ changeEvListener($controlTogglePanel,'click', handleControlPanelToggle)
  * Updates the control panel's CSS height
  * Currently, each child of $controlList contributes 2em to its opened height
  */
-let updateControlsHeightCSS=()=>{
+const updateControlsHeightCSS=()=>{
     $cssOutput.innerHTML="#controls>ul{max-height:"+($controlsList.childElementCount*2)+"em;}"
 }
 updateControlsHeightCSS()
@@ -232,7 +232,7 @@ updateControlsHeightCSS()
 /**
  * Pauses or unpauses animation
  */
-let handleAnimationToggle=()=>{
+const handleAnimationToggle=()=>{
     if($controlToggleAnimation.checked){
         $w.requestAnimationFrame(animate)
     }else{
@@ -243,13 +243,13 @@ changeEvListener($controlToggleAnimation,'change',handleAnimationToggle)
 /**
  * Clears canvas
  */
-let clearCanvas=()=>{
+const clearCanvas=()=>{
     ctx.clearRect(0,0,canvasWidth,canvasHeight)
 }
 /**
  * Resets canvas
  */
-let handleResetCanvas=()=>{
+const handleResetCanvas=()=>{
     animTick=0
     currentPhaseSpaceCoords=[g/kOverM,0,0,0]
     clearCanvas()
@@ -259,24 +259,24 @@ changeEvListener($controlsResetCanvas,'click', handleResetCanvas)
 
 // CANVAS STUFF
 
-let /** @type {HTMLElement} */ $canvas=byId('canvas')
-let /** @type {CanvasRenderingContext2D} */ ctx=$canvas.getContext('2d')
+const /** @type {HTMLCanvasElement} */ $canvas=/** @type {HTMLCanvasElement} */(byId('canvas'))
+const /** @type {CanvasRenderingContext2D} */ ctx=/** @type {CanvasRenderingContext2D} */($canvas.getContext('2d'))
 
-let /** @type {![number, number]} */ canvasDragPos=[0,0],
-    /** @type {![number, number]} */ canvasDragVel=[0,0],
-    /** @type {number} */ canvasDragTime,
+const /** @type {![number, number]} */ canvasDragPos=[0,0],
+    /** @type {![number, number]} */ canvasDragVel=[0,0]
+let /** @type {number} */ canvasDragTime,
     /** @type {number} */ canvasDragStopTimeout=0,
     /** @type {number} */ currentAnimationFrame, // stores requestAnimationFrame output for cancelling
     /** @type {!number} */ canvasWidth=0,
     /** @type {!number} */ canvasHeight=0,
     /** @type {!number} */ animTick=0,
-    /** @type {number} */ canvasTime,
+    /** @type {number} */ canvasTime=0,
     /** @type {!number} */ timeSinceLastFrame=0
 
 /**
  * Makes sure canvas width and height continue to fill up Window when resizing
  */
-let handleResize=()=>{
+const handleResize=()=>{
     canvasWidth=$w.innerWidth
     canvasHeight=$w.innerHeight
 
@@ -293,27 +293,27 @@ changeEvListener($w, 'resize', handleResize)
  * @param {!Array<number>} b 
  * @returns {!Array<number>} Result is the same size as a (and should be the same size as b, but isn't checked)
  */
-let vectorAdd=(a,b) => a.map((x,i) => x+b[i])
+const vectorAdd=(a,b) => a.map((x,i) => x+b[i])
 /**
  * Subtracts two arrays termwise
  * @param {!Array<number>} a 
  * @param {!Array<number>} b 
  * @returns {!Array<number>} Result is the same size as a (and should be the same size as b, but isn't checked)
  */
-let vectorSubtract=(a,b) => a.map((x,i) => x-b[i])
+const vectorSubtract=(a,b) => a.map((x,i) => x-b[i])
 /**
  * Multiplies array termwise by scalar
  * @param {!number} scalar 
  * @param {!Array<number>} vector 
  * @returns {!Array<number>} same size as vector, with each term multiplied by scalar
  */
-let scalarMult=(scalar, vector) => vector.map(x => scalar * x)
+const scalarMult=(scalar, vector) => vector.map(x => scalar * x)
 /**
  * Sum of termwise squares of array
  * @param {!Array<number>} vector 
  * @returns {!number}
  */
-let normSquared=(vector)=>vector.reduce((sumSoFar, x)=>(sumSoFar + x*x),0)
+const normSquared=(vector)=>vector.reduce((sumSoFar, x)=>(sumSoFar + x*x),0)
 
 const /** @type {!number} */ BOBCLICKAREASCALEFACTOR = 4,
     /** @type {!number} */ MAXDRAGVEL=4
@@ -324,14 +324,14 @@ let /** @type {!number} */ L0=1,
     /** @type {!number} */ pxPerMeter=100,
     /** @type {!number} */ linearDragCoeff=0.1
 
-let /** @type {![number, number]} */ pivotCoords=[canvasWidth/(pxPerMeter*2), canvasHeight/(pxPerMeter*6)],
-    /** @type {![number, number]} */ pendulumCoords=vectorAdd(pivotCoords,[0,100/pxPerMeter]),
-    /** @type {!number} */ pendulumBobRadius=0.15,
+const /** @type {![number, number]} */ pivotCoords=[canvasWidth/(pxPerMeter*2), canvasHeight/(pxPerMeter*6)],
+    /** @type {![number, number]} */ pendulumCoords=vectorAdd(pivotCoords,[0,100/pxPerMeter])
+let /** @type {!number} */ pendulumBobRadius=0.15,
     /** @type {!number} */ pivotRadius=0.15,
     /** @type {!boolean} */ currentlyDraggingBob=false,
     /** @type {![number, number, number, number]} */ currentPhaseSpaceCoords=[g/kOverM,0.1,0,0]
 
-//let sigmoid = (x, max=1, slope=1)=>Math.tanh(x*slope/max)*max
+//const sigmoid = (x, max=1, slope=1)=>Math.tanh(x*slope/max)*max
 
 /**
  * Converts pixel left and top offsets to physical polar coodinates 
@@ -341,20 +341,20 @@ let /** @type {![number, number]} */ pivotCoords=[canvasWidth/(pxPerMeter*2), ca
  * @param {number} [topVel=0] Time derivative of top offset
  * @returns {![number, number, number, number]}
  */
-let pendulumCoordsToPhaseSpace=function(left,top, leftVel=0, topVel=0){
-    let /** @type {![number, number]} */ diff=vectorSubtract([left,top], pivotCoords),
+const pendulumCoordsToPhaseSpace=function(left,top, leftVel=0, topVel=0){
+    const /** @type {![number, number]} */ diff=vectorSubtract([left,top], pivotCoords),
         /** @type {!number} */ magnitude=Math.sqrt(normSquared(diff)),
         /** @type {!number} */ x=magnitude-L0,
-        /** @type {!number} */ theta=Math.atan2(diff[0],diff[1]),
-        /** @type {!number} */ xPrime=0,
+        /** @type {!number} */ theta=Math.atan2(diff[0],diff[1])
+    let /** @type {!number} */ xPrime=0,
         /** @type {!number} */ thetaPrime=0
 
     if((leftVel || topVel) && magnitude>0){
-        let /** @type {!number} */ velNormSquared=leftVel*leftVel + topVel*topVel
+        const /** @type {!number} */ velNormSquared=leftVel*leftVel + topVel*topVel
         if(velNormSquared > MAXDRAGVEL*MAXDRAGVEL){
-            let /** @type {!number} */ factor=MAXDRAGVEL*(velNormSquared**-0.5)
-            leftVel*= factor
-            topVel*=factor
+            const /** @type {!number} */ factor=MAXDRAGVEL*(velNormSquared**-0.5)
+            leftVel *= factor
+            topVel *= factor
         }
         thetaPrime=(leftVel*diff[1]-topVel*diff[0])/magnitude
         xPrime=(diff[0]*leftVel+diff[1]*topVel)/magnitude
@@ -370,8 +370,8 @@ let pendulumCoordsToPhaseSpace=function(left,top, leftVel=0, topVel=0){
  * @param {!number} thetaPrime 
  * @returns {![number, number]}
  */
-let phaseSpaceToPendulumCoords=function(x, theta, xPrime, thetaPrime){
-    let /** @type {!number} */ L=L0+x
+const phaseSpaceToPendulumCoords=function(x, theta, xPrime, thetaPrime){
+    const /** @type {!number} */ L=L0+x
     return vectorAdd(pivotCoords,scalarMult(L,[Math.sin(theta),Math.cos(theta)]))
 }
 
@@ -383,8 +383,8 @@ let phaseSpaceToPendulumCoords=function(x, theta, xPrime, thetaPrime){
  * @param {!number} thetaPrime Time derivative of theta
  * @returns {![number, number, number, number]}
  */
-let pendulumFunction=function(x, theta, xPrime, thetaPrime){
-    let /** @type {!number} */ l=L0+x
+const pendulumFunction=function(x, theta, xPrime, thetaPrime){
+    const /** @type {!number} */ l=L0+x
         //lthetaPrime2=l*thetaPrime*thetaPrime,
         //v2=xPrime*xPrime+l*lthetaPrime2
     return [
@@ -393,15 +393,14 @@ let pendulumFunction=function(x, theta, xPrime, thetaPrime){
         -(g*Math.sin(theta)+2*xPrime*thetaPrime)/l-linearDragCoeff*thetaPrime
     ]
 }
-
 /**
  * Uses order-4 Runge-Kutta to compute future coords cuz I'm lazy
  * @param {![number, number, number, number]} curr Array of current polar coordinates and their derivatives wrt time
  * @param {!number} h Timestep
  * @returns {![number, number, number, number]}
  */
-let nextStepRK4=function(curr,h){
-    let /** @type {![number, number, number, number]} */ k1=pendulumFunction(...curr),
+const nextStepRK4=function(curr,h){
+    const /** @type {![number, number, number, number]} */ k1=pendulumFunction(...curr),
         /** @type {![number, number, number, number]} */ k2=pendulumFunction(...vectorAdd(curr,scalarMult(h/2,k1))),
         /** @type {![number, number, number, number]} */ k3=pendulumFunction(...vectorAdd(curr,scalarMult(h/2,k2))),
         /** @type {![number, number, number, number]} */ k4=pendulumFunction(...vectorAdd(curr,scalarMult(h,k3)))
@@ -412,11 +411,11 @@ let nextStepRK4=function(curr,h){
  * Renders one frame of the canvas
  * @param {number} [timeStamp=document.timeline.currentTime] Timeline's current time in ms, passed as parameter by requestAnimationFrame
  */
-let animate=function(timeStamp=currTime()){
+const animate=function(timeStamp=currTime()){
     clearCanvas()
     animTick++
-    canvasTime = timeStamp
     timeSinceLastFrame = Math.min(timeStamp - canvasTime, 30)
+    canvasTime = timeStamp
     if(currentlyDraggingBob){
         // no physics calculations, just move the bob to the mouse
         copyArrayTo(pendulumCoords,canvasDragPos)
@@ -469,7 +468,7 @@ setUpDragListeners($canvas, function(coords){
 
     $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
 },function(coords){
-    let /** @type {![number, number]} */ posNew=scalarMult(1/pxPerMeter,coords),
+    const /** @type {![number, number]} */ posNew=scalarMult(1/pxPerMeter,coords),
         /** @type {!number} */ timeDiff=currTime()-canvasDragTime
     canvasDragTime+=timeDiff
     if(timeDiff>0){
