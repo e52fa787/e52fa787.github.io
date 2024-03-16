@@ -1,6 +1,4 @@
-/*jslint browser */
-/*global process */
-;(/** @param {globalThis} $w the global element (hopefully window) */($w)=>{if(!($w instanceof Window)){throw new Error('No window object')}'use strict';$w.addEventListener('load',()=>{
+;(/** @param {Window} $w The Window */($w)=>{'use strict';$w.addEventListener('load',()=>{
 
 
 const /** @type {Document} */$doc=$w.document,
@@ -25,7 +23,7 @@ const byId=(id)=>{
 }
 /**
  * Adds or Removes Event Listeners from an element
- * @param {Element | Document | Window} $elem Element to change event listeners of
+ * @param {HTMLElement | Document | Window} $elem Element to change event listeners of
  * @param {string} evs Space-separated string of events
  * @param {EventListenerOrEventListenerObject} listener Event listener callback
  * @param {boolean} [addInsteadOfRemove=true] Whether to add or remove the element
@@ -52,14 +50,14 @@ const currTime=()=>{
     }
 }
 
-const /** @type {Element} */ $controls=byId('controls'),
-    /** @type {Element} */ $cssOutput=byId('css-output'),
-    /** @type {Element} */ $controlsDragTrigger=$controls.getElementsByTagName('header')[0],
-    /** @type {Element} */ $controlsList=$controls.getElementsByTagName('ul')[0],
-    /** @type {Element} */ $controlTogglePanel=$controls.getElementsByClassName('toggle-dropdown')[0],
-    /** @type {Element} */ $controlToggleAnimation=byId('toggle-animation'),
-    /** @type {Element} */ $controlsResetCanvas=byId('reset-canvas'),
-    /** @type {Element} */ $coordOutput=byId('output-coords')
+const /** @type {HTMLElement} */ $controls=byId('controls'),
+    /** @type {HTMLElement} */ $cssOutput=byId('css-output'),
+    /** @type {HTMLElement} */ $controlsDragTrigger=$controls.getElementsByTagName('header')[0],
+    /** @type {HTMLElement} */ $controlsList=$controls.getElementsByTagName('ul')[0],
+    /** @type {HTMLElement} */ $controlTogglePanel=$controls.getElementsByClassName('toggle-dropdown')[0],
+    /** @type {HTMLElement} */ $controlToggleAnimation=byId('toggle-animation'),
+    /** @type {HTMLElement} */ $controlsResetCanvas=byId('reset-canvas'),
+    /** @type {HTMLElement} */ $coordOutput=byId('output-coords')
 
 let /** @type {string} */ outputMsgNotDragging=$coordOutput.innerHTML,
     /** @type {!boolean} */ isWindowActive=true
@@ -154,7 +152,7 @@ const moveCoordsWithinWindow=function(coords, horizontalMax, verticalMax){
 }
 /**
  * Attaches and removes event listeners for draggable objects and calculates mouse coordinates
- * @param {Element} $elem Element to attach the drag start listener to
+ * @param {HTMLElement} $elem Element to attach the drag start listener to
  * @param {!Function} dragStart Function that runs on drag start
  * @param {!Function} dragMove Function that runs on drag move
  * @param {!Function} dragEnd Function that runs on drag end
@@ -261,7 +259,7 @@ changeEvListener($controlsResetCanvas,'click', handleResetCanvas)
 
 // CANVAS STUFF
 
-let /** @type {Element} */ $canvas=byId('canvas')
+let /** @type {HTMLElement} */ $canvas=byId('canvas')
 let /** @type {CanvasRenderingContext2D} */ ctx=$canvas.getContext('2d')
 
 let /** @type {![number, number]} */ canvasDragPos=[0,0],
@@ -493,4 +491,4 @@ setUpDragListeners($canvas, function(coords){
     }
 })
 
-})})('undefined'!==typeof window?window:this)
+})})(window)
