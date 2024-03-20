@@ -97,7 +97,7 @@ const controlPos=((o)=>[o.left,o.top])($controls.getBoundingClientRect())
  * @param {number} [dp=2] number of decimal places to round to
  * @returns {!number}
  */
-const roundToDecimal=function(number,dp=2){
+const roundToDecimal=(number,dp=2)=>{
     return Math.round(number*(10**dp))/(10**dp)
 }
 
@@ -106,7 +106,7 @@ const roundToDecimal=function(number,dp=2){
  * @param {!Array} destination 
  * @param {!Array} src 
  */
-const copyArrayTo=function(destination, src){
+const copyArrayTo=(destination, src)=>{
     destination.splice(0,destination.length,...src)
 }
 
@@ -116,7 +116,7 @@ const copyArrayTo=function(destination, src){
  * @returns {![number, number]} Array of two coordinates contained in the event
  */
 
-const extractCoordsFromEvent=function(e){
+const extractCoordsFromEvent=(e)=>{
     if('touches' in e){
         const {touches, changedTouches} = e
         const touch = touches[0] ?? changedTouches[0]
@@ -132,7 +132,7 @@ const extractCoordsFromEvent=function(e){
  * @param {!number} verticalMax 
  * @returns {![number, number]} Array of coordinates
  */
-const moveCoordsWithinWindow=function(coords, horizontalMax, verticalMax){
+const moveCoordsWithinWindow=(coords, horizontalMax, verticalMax)=>{
     let [/** @type {!number} */ left, /** @type {!number} */ top]=coords
     if(left<0){
         left=0
@@ -156,12 +156,12 @@ const moveCoordsWithinWindow=function(coords, horizontalMax, verticalMax){
  * @param {!Function} dragMove Function that runs on drag move
  * @param {!Function} dragEnd Function that runs on drag end
  */
-const setUpDragListeners=function($elem, dragStart, dragMove, dragEnd){
+const setUpDragListeners=($elem, dragStart, dragMove, dragEnd)=>{
     /**
      * Wrapper for dragStart listener
      * @param {Event} e Event for drag start
      */
-    const dragStartListener=function(e){
+    const dragStartListener=(e)=>{
         e.preventDefault()
         dragStart.call(this,extractCoordsFromEvent(/** @type {MouseEvent | TouchEvent} */(e)),e)
         changeEvListener($doc, EVENTDRAGMOVE, dragMoveListener)
@@ -172,7 +172,7 @@ const setUpDragListeners=function($elem, dragStart, dragMove, dragEnd){
      * Wrapper for dragMove listener
      * @param {Event} e Event for drag move
      */
-    const dragMoveListener=function(e){
+    const dragMoveListener=(e)=>{
         e.preventDefault()
         dragMove.call(this, extractCoordsFromEvent(/** @type {MouseEvent | TouchEvent} */(e)),e)
     }
@@ -191,10 +191,10 @@ const setUpDragListeners=function($elem, dragStart, dragMove, dragEnd){
 /**
  * Set up dragging for $controls
  */
-setUpDragListeners($controlsDragTrigger, function(coords){
+setUpDragListeners($controlsDragTrigger, (coords)=>{
     copyArrayTo(controlsDragPos,coords)
     $controls.classList.add('currentlyDragging')
-}, function(coords){
+}, (coords)=>{
     // compute new positions based on mouse movement
 
     controlPos[0] += coords[0] - controlsDragPos[0]
@@ -325,7 +325,7 @@ let /** @type {!number} */ L0=1,
     /** @type {!number} */ linearDragCoeff=0.1
 
 const /** @type {![number, number]} */ pivotCoords=[canvasWidth/(pxPerMeter*2), canvasHeight/(pxPerMeter*6)],
-    /** @type {![number, number]} */ pendulumCoords=vectorAdd(pivotCoords,[0,100/pxPerMeter])
+    /** @type {![number, number]} */ pendulumCoords=/** @type {![number, number]} */(vectorAdd(pivotCoords,[0,100/pxPerMeter]))
 let /** @type {!number} */ pendulumBobRadius=0.15,
     /** @type {!number} */ pivotRadius=0.15,
     /** @type {!boolean} */ currentlyDraggingBob=false,
@@ -341,8 +341,8 @@ let /** @type {!number} */ pendulumBobRadius=0.15,
  * @param {number} [topVel=0] Time derivative of top offset
  * @returns {![number, number, number, number]}
  */
-const pendulumCoordsToPhaseSpace=function(left,top, leftVel=0, topVel=0){
-    const /** @type {![number, number]} */ diff=vectorSubtract([left,top], pivotCoords),
+const pendulumCoordsToPhaseSpace=(left,top, leftVel=0, topVel=0)=>{
+    const /** @type {![number, number]} */ diff=/** @type {![number, number]} */(vectorSubtract([left,top], pivotCoords)),
         /** @type {!number} */ magnitude=Math.sqrt(normSquared(diff)),
         /** @type {!number} */ x=magnitude-L0,
         /** @type {!number} */ theta=Math.atan2(diff[0],diff[1])
@@ -370,9 +370,9 @@ const pendulumCoordsToPhaseSpace=function(left,top, leftVel=0, topVel=0){
  * @param {!number} thetaPrime 
  * @returns {![number, number]}
  */
-const phaseSpaceToPendulumCoords=function(x, theta, xPrime, thetaPrime){
+const phaseSpaceToPendulumCoords=(x, theta, xPrime, thetaPrime)=>{
     const /** @type {!number} */ L=L0+x
-    return vectorAdd(pivotCoords,scalarMult(L,[Math.sin(theta),Math.cos(theta)]))
+    return /** @type {![number, number]} */(vectorAdd(pivotCoords,scalarMult(L,[Math.sin(theta),Math.cos(theta)])))
 }
 
 /**
@@ -383,7 +383,7 @@ const phaseSpaceToPendulumCoords=function(x, theta, xPrime, thetaPrime){
  * @param {!number} thetaPrime Time derivative of theta
  * @returns {![number, number, number, number]}
  */
-const pendulumFunction=function(x, theta, xPrime, thetaPrime){
+const pendulumFunction=(x, theta, xPrime, thetaPrime)=>{
     const /** @type {!number} */ l=L0+x
         //lthetaPrime2=l*thetaPrime*thetaPrime,
         //v2=xPrime*xPrime+l*lthetaPrime2
@@ -399,19 +399,19 @@ const pendulumFunction=function(x, theta, xPrime, thetaPrime){
  * @param {!number} h Timestep
  * @returns {![number, number, number, number]}
  */
-const nextStepRK4=function(curr,h){
+const nextStepRK4=(curr,h)=>{
     const /** @type {![number, number, number, number]} */ k1=pendulumFunction(...curr),
-        /** @type {![number, number, number, number]} */ k2=pendulumFunction(...vectorAdd(curr,scalarMult(h/2,k1))),
-        /** @type {![number, number, number, number]} */ k3=pendulumFunction(...vectorAdd(curr,scalarMult(h/2,k2))),
-        /** @type {![number, number, number, number]} */ k4=pendulumFunction(...vectorAdd(curr,scalarMult(h,k3)))
-    return vectorAdd(curr,vectorAdd(scalarMult(h/6,vectorAdd(k1,k4)),scalarMult(h/3,vectorAdd(k2,k3))))
+        /** @type {![number, number, number, number]} */ k2=pendulumFunction(.../** @type {![number, number, number, number]} */(vectorAdd(curr,scalarMult(h/2,k1)))),
+        /** @type {![number, number, number, number]} */ k3=pendulumFunction(.../** @type {![number, number, number, number]} */(vectorAdd(curr,scalarMult(h/2,k2)))),
+        /** @type {![number, number, number, number]} */ k4=pendulumFunction(.../** @type {![number, number, number, number]} */(vectorAdd(curr,scalarMult(h,k3))))
+    return /** @type {![number, number, number, number]} */(vectorAdd(curr,vectorAdd(scalarMult(h/6,vectorAdd(k1,k4)),scalarMult(h/3,vectorAdd(k2,k3)))))
 }
 
 /**
  * Renders one frame of the canvas
  * @param {number} [timeStamp=document.timeline.currentTime] Timeline's current time in ms, passed as parameter by requestAnimationFrame
  */
-const animate=function(timeStamp=currTime()){
+const animate=(timeStamp=currTime())=>{
     clearCanvas()
     animTick++
     timeSinceLastFrame = Math.min(timeStamp - canvasTime, 30)
@@ -459,7 +459,7 @@ const animate=function(timeStamp=currTime()){
  * Syncs canvasDragPos with current cursor position when dragging
  * Also updates $coordOutput
  */
-setUpDragListeners($canvas, function(coords){
+setUpDragListeners($canvas, (coords)=>{
     copyArrayTo(canvasDragPos,scalarMult(1/pxPerMeter,coords))
     canvasDragTime=currTime()
     if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=BOBCLICKAREASCALEFACTOR*(pendulumBobRadius**2)){ // factor makes it easier to select on mobile by making the "hitbox" larger
@@ -467,8 +467,8 @@ setUpDragListeners($canvas, function(coords){
     }
 
     $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
-},function(coords){
-    const /** @type {![number, number]} */ posNew=scalarMult(1/pxPerMeter,coords),
+},(coords)=>{
+    const /** @type {![number, number]} */ posNew=/** @type {![number, number]} */(scalarMult(1/pxPerMeter,coords)),
         /** @type {!number} */ timeDiff=currTime()-canvasDragTime
     canvasDragTime+=timeDiff
     if(timeDiff>0){
@@ -486,8 +486,8 @@ setUpDragListeners($canvas, function(coords){
     if(currentlyDraggingBob){
         copyArrayTo(currentPhaseSpaceCoords, pendulumCoordsToPhaseSpace(...canvasDragPos, ...canvasDragVel))
         currentlyDraggingBob=false
-        $coordOutput.innerHTML=outputMsgNotDragging
     }
+    $coordOutput.innerHTML=outputMsgNotDragging
 })
 
 })})(window)
