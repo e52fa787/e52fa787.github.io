@@ -14,6 +14,10 @@
                 <li><label for="toggle-animation">animation</label><input type="checkbox" id="toggle-animation" /></li>
                 <li><button id="reset-canvas">reset</button></li>
                 <li id="output-coords">not dragging</li>
+                <li><label title="resolution in pixels per meter">&#x1F50D;</label><input type="range" min="50" max="100" step="1" data-param="pxPerM" /><input type="number" min="50" max="100" /></li>
+                <li><label title="spring constant per unit mass">k</label><input type="range" min="1" max="10" step="0.1" data-param="k" /><input type="number" min="1" /></li>
+                <li><label title="acceleration due to gravity">g</label><input type="range" min="0" max="15" step="0.1" data-param="g" /><input type="number" min="0" /></li>
+                <li><label title="linear drag coefficient">c<sub>d</sub></label><input type="range" min="0" max="10" step="0.1" data-param="ldc" /><input type="number" min="0" /></li>
             </ul>
         </div>
         <canvas id="canvas">Your browser doesn't support HTML5 Canvas :(</canvas>

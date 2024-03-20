@@ -51,11 +51,6 @@ const currTime=()=>{
 
 const /** @type {HTMLElement} */ $controls=byId('controls'),
     /** @type {HTMLElement} */ $cssOutput=byId('css-output'),
-    /** @type {HTMLElement} */ $controlsDragTrigger=$controls.getElementsByTagName('header')[0],
-    /** @type {HTMLElement} */ $controlsList=$controls.getElementsByTagName('ul')[0],
-    /** @type {HTMLElement} */ $controlTogglePanel=/** @type {HTMLElement} */($controls.getElementsByClassName('toggle-dropdown')[0]),
-    /** @type {HTMLInputElement} */ $controlToggleAnimation=/** @type {HTMLInputElement} */(byId('toggle-animation')),
-    /** @type {HTMLElement} */ $controlsResetCanvas=byId('reset-canvas'),
     /** @type {HTMLElement} */ $coordOutput=byId('output-coords')
 
 let /** @type {string} */ outputMsgNotDragging=$coordOutput.innerHTML,
@@ -188,6 +183,8 @@ const setUpDragListeners=($elem, dragStart, dragMove, dragEnd)=>{
     }
     changeEvListener($elem, EVENTDRAGSTART, dragStartListener)
 }
+
+const /** @type {HTMLElement} */ $controlsDragTrigger=$controls.getElementsByTagName('header')[0]
 /**
  * Set up dragging for $controls
  */
@@ -211,6 +208,7 @@ setUpDragListeners($controlsDragTrigger, (coords)=>{
     copyArrayTo(controlPos,moveCoordsWithinWindow(controlPos,$body.clientWidth-$controls.clientWidth,$body.clientHeight-$controls.clientHeight))
 })
 
+const /** @type {HTMLElement} */ $controlTogglePanel=/** @type {HTMLElement} */($controls.getElementsByClassName('toggle-dropdown')[0])
 /**
  * Toggles the closed/expanded state of the $controls
  */
@@ -219,6 +217,7 @@ const handleControlPanelToggle=()=>{
 }
 changeEvListener($controlTogglePanel,'click', handleControlPanelToggle)
 
+const /** @type {HTMLElement} */ $controlsList=$controls.getElementsByTagName('ul')[0]
 /**
  * Updates the control panel's CSS height
  * Currently, each child of $controlList contributes 2em to its opened height
@@ -228,6 +227,7 @@ const updateControlsHeightCSS=()=>{
 }
 updateControlsHeightCSS()
 
+const /** @type {HTMLInputElement} */ $controlToggleAnimation=/** @type {HTMLInputElement} */(byId('toggle-animation'))
 
 /**
  * Pauses or unpauses animation
@@ -246,15 +246,19 @@ changeEvListener($controlToggleAnimation,'change',handleAnimationToggle)
 const clearCanvas=()=>{
     ctx.clearRect(0,0,canvasWidth,canvasHeight)
 }
+
+const /** @type {HTMLElement} */ $controlsReset=byId('reset-canvas')
 /**
  * Resets canvas
  */
-const handleResetCanvas=()=>{
+const handleReset=()=>{
     animTick=0
-    currentPhaseSpaceCoords=[g/kOverM,0,0,0]
+    Object.assign(params,defaultParams)
+    currentPhaseSpaceCoords=[params.g/params.k,0,0,0]
+    updateParamControls(null)
     clearCanvas()
 }
-changeEvListener($controlsResetCanvas,'click', handleResetCanvas)
+changeEvListener($controlsReset,'click', handleReset)
 
 
 // CANVAS STUFF
@@ -315,21 +319,64 @@ const scalarMult=(scalar, vector) => vector.map(x => scalar * x)
  */
 const normSquared=(vector)=>vector.reduce((sumSoFar, x)=>(sumSoFar + x*x),0)
 
-const /** @type {!number} */ BOBCLICKAREASCALEFACTOR = 4,
+// PENDULUM
+/**
+ * @typedef {Object} ParamObj
+ * @property {number} L0 Rest length
+ * @property {number} g Acceleration due to gravity
+ * @property {number} k Spring constant per unit mass
+ * @property {number} pxPerM Resolution in pixels per meter
+ * @property {number} ldc Linear Drag Coefficient
+ * @property {number} rBob Radius of pendulum bob
+ * @property {number} rPivot Radius of pendulum pivot
+ */
+const /** @type {ParamObj} */ defaultParams={
+    L0: 1,
+    g: 9.8,
+    k: 3,
+    pxPerM: 100,
+    ldc: 0.1,
+    rBob: 0.15,
+    rPivot: 0.15
+}
+const /** @type {ParamObj} */ params=Object.assign({},defaultParams)
+
+/**
+ * Updates the param sliders according to the value of params
+ * @param {null | function(string, HTMLInputElement, HTMLInputElement): void} optionalCallback An optional callback, which receieves the param string and the two sibling input elements
+ */
+const updateParamControls = (optionalCallback)=>{
+    for(let /** @type {string} */ label in params){
+        if(label){
+            let /** @type {Element?} */ $input = $controls.querySelector('[data-param="'+label+'"]'),
+                /** @type {ChildNode | null | undefined} */ $sib = $input?.nextSibling
+            if($input && $sib && $input instanceof HTMLInputElement && $sib instanceof HTMLInputElement){
+                let /** @type {[HTMLInputElement,HTMLInputElement]} */siblingInputs=[$input, $sib]
+                siblingInputs.forEach(($elem, i)=>{
+                    $elem.value=params[label]
+                    if(optionalCallback){
+                        optionalCallback(label, $elem, siblingInputs[1-i])
+                    }
+                })
+            }
+        }
+    }
+}
+updateParamControls((label, $elem, $sib)=>{
+    changeEvListener($elem, 'input', ()=>{
+        let val = $elem.value
+        params[label] = val
+        $sib.value = val
+    })
+})
+
+const /** @type {!number} */ BOBCLICKAREASCALEFACTOR = 8,
     /** @type {!number} */ MAXDRAGVEL=4
 
-let /** @type {!number} */ L0=1,
-    /** @type {!number} */ g=9.81,
-    /** @type {!number} */ kOverM=3,
-    /** @type {!number} */ pxPerMeter=100,
-    /** @type {!number} */ linearDragCoeff=0.1
-
-const /** @type {![number, number]} */ pivotCoords=[canvasWidth/(pxPerMeter*2), canvasHeight/(pxPerMeter*6)],
-    /** @type {![number, number]} */ pendulumCoords=/** @type {![number, number]} */(vectorAdd(pivotCoords,[0,100/pxPerMeter]))
-let /** @type {!number} */ pendulumBobRadius=0.15,
-    /** @type {!number} */ pivotRadius=0.15,
-    /** @type {!boolean} */ currentlyDraggingBob=false,
-    /** @type {![number, number, number, number]} */ currentPhaseSpaceCoords=[g/kOverM,0.1,0,0]
+const /** @type {![number, number]} */ pivotCoords=[canvasWidth/(params.pxPerM*2), canvasHeight/(params.pxPerM*6)],
+    /** @type {![number, number]} */ pendulumCoords=/** @type {![number, number]} */(vectorAdd(pivotCoords,[0,100/params.pxPerM]))
+let /** @type {!boolean} */ currentlyDraggingBob=false,
+    /** @type {![number, number, number, number]} */ currentPhaseSpaceCoords=[params.g/params.k,0.1,0,0]
 
 //const sigmoid = (x, max=1, slope=1)=>Math.tanh(x*slope/max)*max
 
@@ -344,7 +391,7 @@ let /** @type {!number} */ pendulumBobRadius=0.15,
 const pendulumCoordsToPhaseSpace=(left,top, leftVel=0, topVel=0)=>{
     const /** @type {![number, number]} */ diff=/** @type {![number, number]} */(vectorSubtract([left,top], pivotCoords)),
         /** @type {!number} */ magnitude=Math.sqrt(normSquared(diff)),
-        /** @type {!number} */ x=magnitude-L0,
+        /** @type {!number} */ x=magnitude-params.L0,
         /** @type {!number} */ theta=Math.atan2(diff[0],diff[1])
     let /** @type {!number} */ xPrime=0,
         /** @type {!number} */ thetaPrime=0
@@ -371,7 +418,7 @@ const pendulumCoordsToPhaseSpace=(left,top, leftVel=0, topVel=0)=>{
  * @returns {![number, number]}
  */
 const phaseSpaceToPendulumCoords=(x, theta, xPrime, thetaPrime)=>{
-    const /** @type {!number} */ L=L0+x
+    const /** @type {!number} */ L=params.L0+x
     return /** @type {![number, number]} */(vectorAdd(pivotCoords,scalarMult(L,[Math.sin(theta),Math.cos(theta)])))
 }
 
@@ -384,13 +431,13 @@ const phaseSpaceToPendulumCoords=(x, theta, xPrime, thetaPrime)=>{
  * @returns {![number, number, number, number]}
  */
 const pendulumFunction=(x, theta, xPrime, thetaPrime)=>{
-    const /** @type {!number} */ l=L0+x
+    const /** @type {!number} */ l=params.L0+x
         //lthetaPrime2=l*thetaPrime*thetaPrime,
         //v2=xPrime*xPrime+l*lthetaPrime2
     return [
         xPrime, thetaPrime,
-        l*thetaPrime*thetaPrime-kOverM*x+g*Math.cos(theta)-linearDragCoeff*xPrime,
-        -(g*Math.sin(theta)+2*xPrime*thetaPrime)/l-linearDragCoeff*thetaPrime
+        l*thetaPrime*thetaPrime-params.k*x+params.g*Math.cos(theta)-params.ldc*xPrime,
+        -(params.g*Math.sin(theta)+2*xPrime*thetaPrime)/l-params.ldc*thetaPrime
     ]
 }
 /**
@@ -423,8 +470,8 @@ const animate=(timeStamp=currTime())=>{
         // compute next step using nextStepRK4
         copyArrayTo(currentPhaseSpaceCoords,nextStepRK4(currentPhaseSpaceCoords,timeSinceLastFrame*1e-3))
         //collision detection
-        if(currentPhaseSpaceCoords[0]+L0<pendulumBobRadius+pivotRadius){
-            currentPhaseSpaceCoords[0]=pivotRadius+pendulumBobRadius-L0
+        if(currentPhaseSpaceCoords[0]+params.L0<params.rBob+params.rPivot){
+            currentPhaseSpaceCoords[0]=params.rPivot+params.rBob-params.L0
             currentPhaseSpaceCoords[2]=-currentPhaseSpaceCoords[2]
         }
         // convert to cartesian coords
@@ -433,19 +480,19 @@ const animate=(timeStamp=currTime())=>{
 
     //draw and stuff
     ctx.beginPath()
-    ctx.scale(pxPerMeter,pxPerMeter)
-    ctx.arc(...pivotCoords, pivotRadius, 0, 2*Math.PI)
+    ctx.scale(params.pxPerM,params.pxPerM)
+    ctx.arc(...pivotCoords, params.rPivot, 0, 2*Math.PI)
     ctx.fillStyle='#333'
     ctx.fill()
 
     ctx.moveTo(...pivotCoords)
-    ctx.lineWidth=3/pxPerMeter
+    ctx.lineWidth=3/params.pxPerM
     ctx.lineTo(...pendulumCoords)
     ctx.strokeStyle='#333'
     ctx.stroke()
     
     ctx.beginPath()
-    ctx.arc(...pendulumCoords, pendulumBobRadius, 0, 2*Math.PI)
+    ctx.arc(...pendulumCoords, params.rBob, 0, 2*Math.PI)
     ctx.fillStyle='#ccc'
     ctx.fill()
 
@@ -460,15 +507,15 @@ const animate=(timeStamp=currTime())=>{
  * Also updates $coordOutput
  */
 setUpDragListeners($canvas, (coords)=>{
-    copyArrayTo(canvasDragPos,scalarMult(1/pxPerMeter,coords))
+    copyArrayTo(canvasDragPos,scalarMult(1/params.pxPerM,coords))
     canvasDragTime=currTime()
-    if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=BOBCLICKAREASCALEFACTOR*(pendulumBobRadius**2)){ // factor makes it easier to select on mobile by making the "hitbox" larger
+    if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=BOBCLICKAREASCALEFACTOR*(params.rBob**2)){ // factor makes it easier to select on mobile by making the "hitbox" larger
         currentlyDraggingBob=true
     }
 
     $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
 },(coords)=>{
-    const /** @type {![number, number]} */ posNew=/** @type {![number, number]} */(scalarMult(1/pxPerMeter,coords)),
+    const /** @type {![number, number]} */ posNew=/** @type {![number, number]} */(scalarMult(1/params.pxPerM,coords)),
         /** @type {!number} */ timeDiff=currTime()-canvasDragTime
     canvasDragTime+=timeDiff
     if(timeDiff>0){

@@ -72,11 +72,12 @@ body{
     padding: 0;
     border: solid 0px;
     overflow: hidden;
-    max-height: 10em; /* UPDATED BY JAVASCRIPT VIA STYLE ELEMENT IN HTML */
+    max-height: 14em; /* UPDATED BY JAVASCRIPT VIA STYLE ELEMENT IN HTML */
     transition: max-height .3s;
 }
 #controls>ul>li{
     padding: 0.5em;
+    height: 2em;
 }
 
 /* Control Panel Dragged and Closed styles */
@@ -100,6 +101,10 @@ body{
 #controls label{
     display: inline-block;
     padding: 0 0.5em 0 0;
+}
+
+#controls input{
+    display: inline-block;
 }
 
 #controls input[type=checkbox]{
@@ -155,4 +160,23 @@ body{
 }
 #controls button:active{
     color: red;
+}
+#controls input[type="range"]{
+    height: 1em;
+    max-width: 8em;
+    outline: none;
+}
+#controls input[type=range]:focus{
+    outline: none;
+}
+#controls input[type=range] + input[type=number]{
+    height: 1em;
+    width: 4.1em;
+    font: inherit;
+    margin: 0;
+    padding: 0 0.5em;
+    outline: none;
+    border: none;
+    background: transparent;
+    color: white;
 }
