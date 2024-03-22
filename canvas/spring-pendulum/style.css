@@ -32,6 +32,7 @@ body{
     color: white;
     font-size: 1em;
     transition: background-color .3s;
+    z-index: 10;
 }
 #controls .toggle-dropdown{
     position: absolute;
