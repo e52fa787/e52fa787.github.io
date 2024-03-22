@@ -18,6 +18,7 @@ html{
     overflow: hidden;
 }
 body{
+    font-family:'Courier New', Courier, monospace;
     height: 100%;
 }
 
@@ -29,7 +30,6 @@ body{
     transform: translate(15px, 15px);
     background: rgba(0,0,0,0.5);
     color: white;
-    font-family:'Courier New', Courier, monospace;
     font-size: 1em;
     transition: background-color .3s;
 }
@@ -262,4 +262,12 @@ body{
     border: none;
     background: transparent;
     color: white;
+}
+.about{
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    padding: 2em;
+    font-size: 0.8em;
+    color: #ccc;
 }
