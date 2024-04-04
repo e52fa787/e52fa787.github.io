@@ -27,7 +27,7 @@ const byId=(id)=>{
  * @param {EventListenerOrEventListenerObject} listener Event listener callback
  * @param {boolean} [removeInstead=false] Whether to add or remove the element
  */
-const changeEvListener=($elem, evs, listener, removeInstead)=>{
+const changeEvListener=($elem, evs, listener, removeInstead=false)=>{
     for(const /** @type {!string} */ ev of evs.split(' ')){
         if(removeInstead){
             $elem.removeEventListener(ev, listener)
