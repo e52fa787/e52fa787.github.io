@@ -148,7 +148,7 @@ const moveCoordsWithinWindow=(coords, horizontalMax, verticalMax)=>{
  * Attaches and removes event listeners for draggable objects and calculates mouse coordinates
  * @param {HTMLElement} $elem Element to attach the drag start listener to
  * @param {!Function} dragStart Function that runs on drag start
- * @param {!Function} dragMove Function that runs on drag move
+ * @param {!Function} dragMove Function that runs on drag move, calls dragEnd if truthy value is returned
  * @param {!Function} dragEnd Function that runs on drag end
  */
 const setUpDragListeners=($elem, dragStart, dragMove, dragEnd)=>{
@@ -158,7 +158,7 @@ const setUpDragListeners=($elem, dragStart, dragMove, dragEnd)=>{
      */
     const dragStartListener=(e)=>{
         e.preventDefault()
-        dragStart.call(this,extractCoordsFromEvent(/** @type {MouseEvent | TouchEvent} */(e)),e)
+        dragStart(extractCoordsFromEvent(/** @type {MouseEvent | TouchEvent} */(e)),e)
         changeEvListener($doc, EVENTDRAGMOVE, dragMoveListener)
         changeEvListener($doc, EVENTDRAGEND, dragEndListener)
         changeEvListener($w, 'blur', dragEndListener)
@@ -169,14 +169,16 @@ const setUpDragListeners=($elem, dragStart, dragMove, dragEnd)=>{
      */
     const dragMoveListener=(e)=>{
         e.preventDefault()
-        dragMove.call(this, extractCoordsFromEvent(/** @type {MouseEvent | TouchEvent} */(e)),e)
+        if(dragMove(extractCoordsFromEvent(/** @type {MouseEvent | TouchEvent} */(e)),e)){
+            dragEndListener()
+        }
     }
     /**
      * Wrapper for dragEnd listener
      */
     const dragEndListener=()=>{
         if(dragEnd){
-            dragEnd.call(this)
+            dragEnd()
         }
         changeEvListener($doc, EVENTDRAGMOVE+' '+EVENTDRAGEND, dragMoveListener, true)
         changeEvListener($w, 'blur', dragEndListener, true)
@@ -188,10 +190,10 @@ const /** @type {HTMLElement} */ $controlsDragTrigger=$controls.getElementsByTag
 /**
  * Set up dragging for $controls
  */
-setUpDragListeners($controlsDragTrigger, (coords)=>{
+setUpDragListeners($controlsDragTrigger, (/** @type {[number, number]} */coords)=>{
     copyArrayTo(controlsDragPos,coords)
     $controls.classList.add('currentlyDragging')
-}, (coords)=>{
+}, (/** @type {[number, number]} */coords)=>{
     // compute new positions based on mouse movement
 
     controlPos[0] += coords[0] - controlsDragPos[0]
@@ -240,6 +242,12 @@ const handleAnimationToggle=()=>{
     }
 }
 changeEvListener($controlToggleAnimation,'change',handleAnimationToggle)
+changeEvListener($doc, 'keydown', (/** @type {Event} */e)=>{
+    if('key' in e && e.key === 'p'){ // only p with no shift/ctrl/etc
+        $controlToggleAnimation.checked=!$controlToggleAnimation.checked
+        handleAnimationToggle()
+    }
+})
 /**
  * Clears canvas
  */
@@ -250,11 +258,15 @@ const clearCanvas=()=>{
 const /** @type {HTMLElement} */ $controlsReset=byId('reset-canvas')
 /**
  * Resets canvas
+ * @param {Event} e
  */
-const handleReset=()=>{
+const handleReset=(e)=>{
     animTick=0
-    Object.assign(params,defaultParams)
-    currentPhaseSpaceCoords=[params.g/params.k,0,0,0]
+    if('shiftKey' in e && e.shiftKey){ // if shift is held (desktop only) reset parameters
+        Object.assign(params,defaultParams)
+    }
+    copyArrayTo(currentPhaseSpaceCoords,[params.g/params.k,0,0,0])
+    copyArrayTo(pivotCoords, [canvasWidth/(params.pxPerM*2), canvasHeight/(params.pxPerM*6)])
     updateParamControls(null)
     clearCanvas()
 }
@@ -374,9 +386,10 @@ const /** @type {!number} */ BOBCLICKAREASCALEFACTOR = 8,
     /** @type {!number} */ MAXDRAGVEL=4
 
 const /** @type {![number, number]} */ pivotCoords=[canvasWidth/(params.pxPerM*2), canvasHeight/(params.pxPerM*6)],
-    /** @type {![number, number]} */ pendulumCoords=/** @type {![number, number]} */(vectorAdd(pivotCoords,[0,100/params.pxPerM]))
-let /** @type {!boolean} */ currentlyDraggingBob=false,
+    /** @type {![number, number]} */ pendulumCoords=/** @type {![number, number]} */(vectorAdd(pivotCoords,[0,100/params.pxPerM])),
     /** @type {![number, number, number, number]} */ currentPhaseSpaceCoords=[params.g/params.k,0.1,0,0]
+let /** @type {!boolean} */ currentlyDraggingBob=false,
+    /** @type {!boolean} */ currentlyDraggingPivot=false
 
 //const sigmoid = (x, max=1, slope=1)=>Math.tanh(x*slope/max)*max
 
@@ -506,34 +519,45 @@ const animate=(timeStamp=currTime())=>{
  * Syncs canvasDragPos with current cursor position when dragging
  * Also updates $coordOutput
  */
-setUpDragListeners($canvas, (coords)=>{
+setUpDragListeners($canvas, (/** @type {[number, number]} */coords)=>{
     copyArrayTo(canvasDragPos,scalarMult(1/params.pxPerM,coords))
     canvasDragTime=currTime()
-    if($controlToggleAnimation.checked && normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=BOBCLICKAREASCALEFACTOR*(params.rBob**2)){ // factor makes it easier to select on mobile by making the "hitbox" larger
-        currentlyDraggingBob=true
+    if($controlToggleAnimation.checked){
+        if(normSquared(vectorSubtract(canvasDragPos,pendulumCoords))<=BOBCLICKAREASCALEFACTOR*(params.rBob**2)){ // factor makes it easier to select on mobile by making the "hitbox" larger
+            currentlyDraggingBob=true
+        }else if(normSquared(vectorSubtract(canvasDragPos, pivotCoords)) <= (params.rPivot**2)){
+            currentlyDraggingPivot=true
+        }
     }
 
     $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
-},(coords)=>{
-    const /** @type {![number, number]} */ posNew=/** @type {![number, number]} */(scalarMult(1/params.pxPerM,coords)),
-        /** @type {!number} */ timeDiff=currTime()-canvasDragTime
-    canvasDragTime+=timeDiff
-    if(timeDiff>0){
-        copyArrayTo(canvasDragVel, scalarMult(1e3/timeDiff,vectorSubtract(posNew, canvasDragPos)))
+},(/** @type {[number, number]} */coords)=>{
+    if($controlToggleAnimation.checked){
+        const /** @type {![number, number]} */ posNew=/** @type {![number, number]} */(scalarMult(1/params.pxPerM,coords))
+        if(currentlyDraggingBob){
+            const /** @type {!number} */ timeDiff=currTime()-canvasDragTime
+            canvasDragTime+=timeDiff
+            if(timeDiff>0){
+                copyArrayTo(canvasDragVel, scalarMult(1e3/timeDiff,vectorSubtract(posNew, canvasDragPos)))
+            }
+            clearTimeout(canvasDragStopTimeout)
+            canvasDragStopTimeout=setTimeout(()=>{
+                copyArrayTo(canvasDragVel,[0,0])
+            }, 50)
+        }else if(currentlyDraggingPivot){
+            copyArrayTo(pivotCoords,posNew)
+        }
+        copyArrayTo(canvasDragPos,posNew)
     }
-    copyArrayTo(canvasDragPos,posNew)
-    clearTimeout(canvasDragStopTimeout)
-    canvasDragStopTimeout=setTimeout(()=>{
-        copyArrayTo(canvasDragVel,[0,0])
-    }, 50)
-
+    //else return true
     $coordOutput.innerHTML=roundToDecimal(canvasDragPos[0])+', '+roundToDecimal(canvasDragPos[1])
 },()=>{
     // convert to polar coords
     if(currentlyDraggingBob){
         copyArrayTo(currentPhaseSpaceCoords, pendulumCoordsToPhaseSpace(...canvasDragPos, ...canvasDragVel))
-        currentlyDraggingBob=false
     }
+    currentlyDraggingBob=false
+    currentlyDraggingPivot=false
     $coordOutput.innerHTML=outputMsgNotDragging
 })
 
