@@ -391,8 +391,6 @@ const /** @type {![number, number]} */ pivotCoords=[canvasWidth/(params.pxPerM*2
 let /** @type {!boolean} */ currentlyDraggingBob=false,
     /** @type {!boolean} */ currentlyDraggingPivot=false
 
-//const sigmoid = (x, max=1, slope=1)=>Math.tanh(x*slope/max)*max
-
 /**
  * Converts pixel left and top offsets to physical polar coodinates 
  * @param {!number} left Left offset in pixels
@@ -444,12 +442,10 @@ const phaseSpaceToPendulumCoords=(x, theta, xPrime, thetaPrime)=>{
  * @returns {![number, number, number, number]}
  */
 const pendulumFunction=(x, theta, xPrime, thetaPrime)=>{
-    const /** @type {!number} */ l=params.L0+x
-        //lthetaPrime2=l*thetaPrime*thetaPrime,
-        //v2=xPrime*xPrime+l*lthetaPrime2
+    const /** @type {!number} */ l=params.L0+x || params.rPivot+params.rBob
     return [
         xPrime, thetaPrime,
-        l*thetaPrime*thetaPrime-params.k*x+params.g*Math.cos(theta)-params.ldc*xPrime,
+        l*thetaPrime*thetaPrime - params.k*x + params.g*Math.cos(theta) - params.ldc*xPrime,
         -(params.g*Math.sin(theta)+2*xPrime*thetaPrime)/l-params.ldc*thetaPrime
     ]
 }
